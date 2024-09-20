@@ -26,7 +26,7 @@ SControl.w = 'j*0.2'
 # Délai de propagation
 SControl.delay = [0.5*ms, 0.8*ms]
 print(GControl.tau)
-
+#test test
 
 
 
