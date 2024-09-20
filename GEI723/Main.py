@@ -6,22 +6,21 @@ start_scope()
 seuilAv = 20
 seuilRe = 15
 current = 10
-tau = 500
 eqs = """
 dv/dt = (I-v) / tau : 1
 tau : second
 I : 1
 """
-GControl = NeuronGroup(3, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
+GControl = NeuronGroup(1, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
 GAv = NeuronGroup(6, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
 GRe = NeuronGroup(6, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
-#GControl.tau = 10 * ms
+GControl.tau = 10 * ms
 # Courant en entrée
 GControl.I = current
 # Définition des synapses
-SControl = Synapses(GControl, GControl, 'w : 1', on_pre='v_post += w')
+SControl = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
 # Connexion des synapses
-SControl.connect(i=0, j=[1, 2])
+SControl.connect(i=0, j=[0, 3, 4])
 # Poids des synapses
 SControl.w = 'j*0.2'
 # Délai de propagation
