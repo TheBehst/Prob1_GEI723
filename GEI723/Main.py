@@ -1,10 +1,21 @@
 from brian2 import *
 import matplotlib.pyplot as plt
-
-MODE = "RECULER"
+import math
+# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT
+TURN = 1
+#1 = AVANCER, 2 = RECULER
+ACTION = 1
 LARGE_CURRENT = 2
 SMALL_CURRENT = 1
 
+def delay_maker(N, start, delay):
+    result = []
+    for i in range(N):
+        if i % 4 == 0 or i % 4 == 3:  
+            result.append(start)
+        else:  
+            result.append(start + delay)
+    return result
 
 start_scope()
 seuilAv = 1
@@ -16,46 +27,103 @@ tau : second
 I : 1
 """
 GControl = NeuronGroup(1, eqs, threshold='v>seuilControle', reset='v=0', method='euler')
+#GTurn =  NeuronGroup(1, eqs, threshold='v>seuilControle', reset='v=0', method='euler')
 GAv = NeuronGroup(6, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
 GRe = NeuronGroup(6, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
+
 GControl.tau = 10 * ms
 GAv.tau = 10 * ms
 GRe.tau = 1000 * ms
-if MODE == "AVANCER":
-    GControl.I = LARGE_CURRENT
-    GAv.I = LARGE_CURRENT
-else: 
-    GControl.I = SMALL_CURRENT
-    GAv.I = SMALL_CURRENT
-GRe.I = 0
-GAv.v = [0, seuilAv/2, seuilAv/2, 0, 0, seuilAv/2]
-GRe.v = [0, seuilRe/2, seuilRe/2, 0, 0, seuilRe/2]
+GControl.I = SMALL_CURRENT
+# GAv.v = [0, seuilAv/2, seuilAv/2, 0, 0, seuilAv/2]
+# GRe.v = [0, seuilRe/2, seuilRe/2, 0, 0, seuilRe/2]
 
+
+# match ACTION:
+#     case 1 : 
+#         ACTION = "AVANCER"
+#         GControl.I = LARGE_CURRENT
+#         GAv.I = LARGE_CURRENT
+#         match TURN:
+#             case 1:
+#                 STurnLeft = Synapses(GTurn, GAv, 'w : 1', on_pre='v_post += w')
+#                 STurnLeft.connect(i=0, j=[1,3,5]) 
+#                 STurnLeft.w = seuilAv/2 
+#             case 2:
+#                 STurnRight = Synapses(GTurn, GAv, 'w : 1', on_pre='v_post += w')
+#                 STurnRight.connect(i=0, j=[0,2,4])
+#                 STurnLeft.w = seuilRe/2
+#     case 2 : 
+#         ACTION = "RECULER"
+#         GControl.I = SMALL_CURRENT
+#         GAv.I = SMALL_CURRENT 
+#         match TURN:
+#             case 1:
+#                 STurnLeft = Synapses(GTurn, GRe, 'w : 1', on_pre='v_post += w')
+#                 STurnLeft.connect(i=0, j=[1,3,5]) 
+#                 STurnLeft.w = seuilAv/2 
+#             case 2:
+#                 STurnRight = Synapses(GTurn, GRe, 'w : 1', on_pre='v_post += w')
+#                 STurnRight.connect(i=0, j=[0,2,4]) 
+#                 STurnLeft.w = seuilRe/2
+
+SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
+SControlAv.connect(i=0, j=range(len(GAv)))  
+SControlAv.w = '0.5'
+SControlAv.delay = delay_maker(6,0,15)* ms
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
-SControlRe.connect(i=0, j=range(len(GRe)))  # Connect to all neurons in GRe
-SControlRe.w = '0.4'
-SControlRe.delay = np.array([0.10, 0.20] * 3) * ms
+SControlRe.connect(i=0, j=range(len(GRe)))  
+SControlRe.w = '0.1'
+SControlRe.delay = delay_maker(6,10, 115) * ms
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
 SInhib.connect(condition='i==j')  
 
-
 MControl = StateMonitor(GControl, 'v', record=True)
 MAv = StateMonitor(GAv, 'v', record=True)
 MRe = StateMonitor(GRe, 'v', record=True)
-# Simulation and plot setup (if required)
-run(500*ms)
 
+# Moniteur pour enregistrer les spikes des neurones
+spike_monitor = SpikeMonitor(GRe)
+spike_monitor_av = SpikeMonitor(GAv)
+# Simulation and plot setup
+run(500*ms)
+spike_times_neuron_0 = spike_monitor.spike_trains()[0]
+spike_times_neuron_1 = spike_monitor.spike_trains()[1]
+
+# Calculer les délais entre les spikes pour les deux neurones
+delays_between_spikes_0 = diff(spike_times_neuron_0)
+delays_between_spikes_1 = diff(spike_times_neuron_1)
+# Récupérer les temps de spikes pour les neurones 0 et 1 du groupe GAv (neurones qui avancent)
+spike_times_neuron_0_av = spike_monitor_av.spike_trains()[0]
+spike_times_neuron_1_av = spike_monitor_av.spike_trains()[1]
+
+# Calculer les délais entre les spikes pour les neurones 0 et 1 dans GAv
+delays_between_spikes_0_av = diff(spike_times_neuron_0_av)
+delays_between_spikes_1_av = diff(spike_times_neuron_1_av)
+
+
+# Afficher les résultats
+print(f"Temps de spikes pour le neurone 0 : {spike_times_neuron_0}")
+print(f"Délais entre les spikes pour le neurone 0 : {delays_between_spikes_0}")
+print(f"Temps de spikes pour le neurone 1 : {spike_times_neuron_1}")
+print(f"Délais entre les spikes pour le neurone 1 : {delays_between_spikes_1}")
+print(f"---------------------------------------------------------------------------------------")
+
+print(f"Temps de spikes pour le neurone 0 (Avancer) : {spike_times_neuron_0_av}")
+print(f"Délais entre les spikes pour le neurone 0 (Avancer) : {delays_between_spikes_0_av}")
+print(f"Temps de spikes pour le neurone 1 (Avancer) : {spike_times_neuron_1_av}")
+print(f"Délais entre les spikes pour le neurone 1 (Avancer) : {delays_between_spikes_1_av}")
 # Visualiser les résultats
 fig1, axes = plt.subplots(3, 1, sharex=True)
 ax = axes[0]
 ax.plot(MControl.t/ms, MControl.v[0], color='blue')
 ax.axhline(y=seuilControle, ls='--', color='g')
 ax.set_ylabel('Potentiel')
-ax.set_title(f'Neurone controle avec courant pour {MODE}')
+ax.set_title(f'Neurone controle avec courant pour {ACTION}')
 ax = axes[1]
 ax.plot(MAv.t/ms, MAv.v[0], color='orange')
 ax.axhline(y=seuilAv, ls='--', color='g')
@@ -80,7 +148,7 @@ fig3, axes = plt.subplots(6, 1, sharex=True)
 for i in range(6):
     ax = axes[i]
     ax.plot(MRe.t/ms, MRe.v[i], color='red')
-    ax.axhline(y=seuilAv, ls='--', color='g')
+    ax.axhline(y=seuilRe, ls='--', color='g')
     ax.set_ylabel('Potentiel')
     ax.set_title(f'Neurone {i} Reculer')
 
