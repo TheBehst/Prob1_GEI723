@@ -16,7 +16,10 @@ def delay_maker(N, start, delay):
         else:  
             result.append(start + delay)
     return result
-
+def odd_numbers(N):
+    return [i for i in range(1, N+1, 2)]
+def even_numbers(N):
+    return [i for i in range(0, N+1, 2)]
 start_scope()
 seuilAv = 1
 seuilRe = 0.9
@@ -26,46 +29,17 @@ dv/dt = (I-v) / tau : 1
 tau : second
 I : 1
 """
-GControl = NeuronGroup(1, eqs, threshold='v>seuilControle', reset='v=0', method='euler')
-#GTurn =  NeuronGroup(1, eqs, threshold='v>seuilControle', reset='v=0', method='euler')
+GControl = NeuronGroup(5, eqs, threshold='v>seuilControle', reset='v=0', method='euler')
 GAv = NeuronGroup(6, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
 GRe = NeuronGroup(6, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
-
+GVitesseRecul = NeuronGroup(2, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
+GVitesseAvance = NeuronGroup(2, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
 GControl.tau = 10 * ms
 GAv.tau = 10 * ms
 GRe.tau = 1000 * ms
-GControl.I = SMALL_CURRENT
-# GAv.v = [0, seuilAv/2, seuilAv/2, 0, 0, seuilAv/2]
-# GRe.v = [0, seuilRe/2, seuilRe/2, 0, 0, seuilRe/2]
+GControl.I = [SMALL_CURRENT, ]
 
 
-# match ACTION:
-#     case 1 : 
-#         ACTION = "AVANCER"
-#         GControl.I = LARGE_CURRENT
-#         GAv.I = LARGE_CURRENT
-#         match TURN:
-#             case 1:
-#                 STurnLeft = Synapses(GTurn, GAv, 'w : 1', on_pre='v_post += w')
-#                 STurnLeft.connect(i=0, j=[1,3,5]) 
-#                 STurnLeft.w = seuilAv/2 
-#             case 2:
-#                 STurnRight = Synapses(GTurn, GAv, 'w : 1', on_pre='v_post += w')
-#                 STurnRight.connect(i=0, j=[0,2,4])
-#                 STurnLeft.w = seuilRe/2
-#     case 2 : 
-#         ACTION = "RECULER"
-#         GControl.I = SMALL_CURRENT
-#         GAv.I = SMALL_CURRENT 
-#         match TURN:
-#             case 1:
-#                 STurnLeft = Synapses(GTurn, GRe, 'w : 1', on_pre='v_post += w')
-#                 STurnLeft.connect(i=0, j=[1,3,5]) 
-#                 STurnLeft.w = seuilAv/2 
-#             case 2:
-#                 STurnRight = Synapses(GTurn, GRe, 'w : 1', on_pre='v_post += w')
-#                 STurnRight.connect(i=0, j=[0,2,4]) 
-#                 STurnLeft.w = seuilRe/2
 
 SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
 SControlAv.connect(i=0, j=range(len(GAv)))  
@@ -82,6 +56,19 @@ SControlRe.delay = delay_maker(6,10, 115) * ms
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
 SInhib.connect(condition='i==j')  
 
+SVitesseRecul_cote_droite = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseRecul_cote_droite.connect(i=1, j = odd_numbers(6))
+
+SVitesseRecul_cote_gauche = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseRecul_cote_gauche.connect(i=2, j = even_numbers(6))
+
+SVitesseAvance_cote_droite = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseAvance_cote_droite.connect(i=3, j = odd_numbers(6))
+
+SVitesseAvance_cote_gauche = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
+SVitesseAvance_cote_gauche.connect(i=4, j = even_numbers(6))
+
+SVitesseAvance = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 MControl = StateMonitor(GControl, 'v', record=True)
 MAv = StateMonitor(GAv, 'v', record=True)
 MRe = StateMonitor(GRe, 'v', record=True)
