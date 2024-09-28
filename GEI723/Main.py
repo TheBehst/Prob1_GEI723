@@ -4,8 +4,8 @@ import math
 
 ############################### 3 CHOIX UTILISATEURS ################################################
 
-TURN = 1 # 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT
-ACTION = 2 #2 = AVANCER, 1 = RECULER
+TURN = 2 # 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT
+ACTION = 1#2 = AVANCER, 1 = RECULER
 NB_PATTES = 6 # doit etre pair
 
 #NB: L'action de tourner commence des que la variable TURN est changée, et dure xxxx temps le temps de tourner 
@@ -29,7 +29,7 @@ TextDirection = "a gauche" if TURN == 1 else "a droite" if TURN == 2 else "tout 
 def delay_maker(N, start, delay):
     result = []
     for i in range(N):
-        if i % 4 == 0 or i % 4 == 3:  
+        if i % 2 == 0 :  
             result.append(start)
         else:  
             result.append(start + delay)
@@ -47,8 +47,8 @@ def even_numbers(N):
 
 LARGE_CURRENT = 2
 SMALL_CURRENT = 1
-CURRENT_TURN_AV = 1.285#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!essai erreur pour reduire de moite les delais entre spike, donc double vitesse d un cote pour tourner
-CURRENT_TURN_RE = 1
+CURRENT_TURN_AV = 3#  5 = 2.3 #1.285#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TODO essai erreur pour reduire de moite les delais entre spike, donc double vitesse d un cote pour tourner
+CURRENT_TURN_RE = 4# TODO modif
 
 Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
 
@@ -64,7 +64,7 @@ start_scope()
 
 SeuilTourner = 1
 seuilAv = 1
-seuilRe = 0.9
+seuilRe = 1
 seuilControle = 0.9
 
 eqs = """
@@ -81,9 +81,9 @@ GRe = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilRe', reset='v=0', method='e
 GVitesseAvance = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0; spike_count += 1; I *= (spike_count < 5)', method='euler')# neurones pour controler les 2 cotes des pattes séparément
 GVitesseRecul = NeuronGroup(2, eqs, threshold='v>=seuilRe', reset='v=0; spike_count += 1; I *= (spike_count < 5)', method='euler')
 
-GControl.tau = 10 * ms
-GAv.tau = 10 * ms
-GRe.tau = 1000 * ms
+GControl.tau = 1 * ms#pour que le controle spike a interval tres court avec I=1 et I=2
+GAv.tau = 10 * ms #150= 12.6
+GRe.tau = 500 * ms#500  30.8
 GControl.I = Current
 
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
@@ -91,7 +91,7 @@ GVitesseAvance.tau = 10 * ms
 GVitesseAvance.spike_count =0
 
 GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right]
-GVitesseRecul.tau = 49.99* ms#!!!!!!!!!!!!!!!!!!!!!!!!!! bidouille pour avoir Délais entre les spikes pour le neurone 0 (CtrlVit_Re) : [115. 115. 115. 115.] ms : MOITIE DE 230, delai normal
+GVitesseRecul.tau = 50* ms#!!!!!!!!!!!!!!!!!!!!!!!!!! 
 GVitesseRecul.spike_count =0
 
 ################################ SYNAPSES ###############################################
@@ -99,14 +99,14 @@ GVitesseRecul.spike_count =0
 
 SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
 SControlAv.connect(i=0, j=range(len(GAv)))  
-SControlAv.w = '0.5'
-SControlAv.delay = delay_maker(NB_PATTES,0,15)* ms
+SControlAv.w = '0.14'
+SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 SControlRe.connect(i=0, j=range(len(GRe)))  
-SControlRe.w = '0.1'
-SControlRe.delay = delay_maker(NB_PATTES,10, 115) * ms
+SControlRe.w = '0.078' #0.079 = 28.6 , 0.077 =30.8
+SControlRe.delay = delay_maker(NB_PATTES,0, 15.4) * ms
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
@@ -124,21 +124,21 @@ SInhib.connect(condition='i==j')
 
 #Synapses pour aller a droite et a gauche en avancant
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-SVitesseAvance_cote_droit.connect(i=0, j = even_numbers(NB_PATTES))
+SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseAvance_cote_droit.w = '1'
 # pb : premier delai pour avancer non regulier avec autre ?
 #Délais entre les spikes pour le neurone 1 (Avancer) : [ 9. 15. 15. 15. 30. 30. 30. 30. 30. 30. 30. 30. 30. 30. 30. 30. 30. 30.] ms 30 = normal
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-SVitesseAvance_cote_gauche.connect(i=1, j = odd_numbers(NB_PATTES))
+SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseAvance_cote_gauche.w = '1'
 
 #Synapses pour aller a droite et a gauche en reculant
 SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-SVitesseRecul_cote_droit.connect(i=0, j = even_numbers(NB_PATTES))
+SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseRecul_cote_droit.w = '1'
 
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-SVitesseRecul_cote_gauche.connect(i=1, j = odd_numbers(NB_PATTES))
+SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = '1'
 
 
@@ -157,7 +157,7 @@ spike_monitor_CtrlVit_AV = SpikeMonitor(GVitesseAvance)
 spike_monitor_CtrlVit_Re = SpikeMonitor(GVitesseRecul)
 
 
-run(1500*ms)#pour reculer, pour avancer on peut sur 500 c est suffisant
+run(200*ms)#pour reculer, pour avancer on peut sur 500 c est suffisant
 
 
 
@@ -232,28 +232,29 @@ ax = axes[1]
 ax.plot(MAv.t/ms, MAv.v[0], color='orange')
 ax.axhline(y=seuilAv, ls='--', color='g')
 ax.set_ylabel('Potentiel')
-ax.set_title('Neurone 0 Avancer ( PATTES DE DROITE)')
+ax.set_title('Neurone 0 Avancer ( PATTES DE GAUCHE)')
 
 ax = axes[2]
 ax.plot(MRe.t/ms, MRe.v[0], color='red')
 ax.axhline(y=seuilRe, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 0 Reculer ( PATTES DE DROITE)')
+ax.set_title('Neurone 0 Reculer ( PATTES DE GAUCHE)')
 
 ax = axes[3]
-ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[0], color='red')
+ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[1], color='red')
 ax.axhline(y=SeuilTourner, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 0 du controle de vitesse en avancant:  tourner a gauche, accelerer droit')
+ax.set_title('Neurone 1 du controle de vitesse en avancant :tourner a droite, accelerer gauche')
 
 ax = axes[4]
-ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[0], color='red')
+ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[1], color='red')
 ax.axhline(y=SeuilTourner, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 0 du controle de vitesse en reculant:  tourner a gauche, accelerer droit')
+ax.set_title('Neurone 1 du controle de vitesse en reculant :tourner a droite, accelerer gauche')
+
 
 fig1.tight_layout()
 
@@ -270,29 +271,28 @@ ax = axes[1]
 ax.plot(MAv.t/ms, MAv.v[1], color='orange')
 ax.axhline(y=seuilAv, ls='--', color='g')
 ax.set_ylabel('Potentiel')
-ax.set_title('Neurone 1 Avancer ( PATTES DE GAUCHE)')
+ax.set_title('Neurone 1 Avancer ( PATTES DE DROITE)')
 
 ax = axes[2]
 ax.plot(MRe.t/ms, MRe.v[1], color='red')
 ax.axhline(y=seuilRe, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 1 Reculer ( PATTES DE GAUCHE)')
+ax.set_title('Neurone 1 Reculer ( PATTES DE DROITE)')
 
 ax = axes[3]
-ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[1], color='red')
+ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[0], color='red')
 ax.axhline(y=SeuilTourner, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 1 du controle de vitesse en avancant :tourner a droite, accelerer gauche')
+ax.set_title('Neurone 0 du controle de vitesse en avancant:  tourner a gauche, accelerer droit')
 
 ax = axes[4]
-ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[1], color='red')
+ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[0], color='red')
 ax.axhline(y=SeuilTourner, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 1 du controle de vitesse en reculant :tourner a droite, accelerer gauche')
-
+ax.set_title('Neurone 0 du controle de vitesse en reculant:  tourner a gauche, accelerer droit')
 
 
 fig2.tight_layout()
@@ -341,6 +341,10 @@ def visualise_connectivity(S):
     ylim(-1, Nt)
     xlabel('Indice du neurone source')
     ylabel('Indice du neurone cible')
+
+visualise_connectivity(SControlAv)
+visualise_connectivity(SControlAv)
+
 #visualise_connectivity(SInhib)
 #visualise_connectivity(SVitesseAvance_cote_gauche)
 #visualise_connectivity(SVitesseAvance_cote_droit)
