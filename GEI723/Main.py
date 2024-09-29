@@ -15,6 +15,8 @@ temps_apparition= 24 *ms # multiple de 6 : temps d apparition de l obstacle
 temps_action= 168 *ms # multiple de 6 : temps pour gerer l obstacle
 if PRESCENCE_OBSTACLE:
     OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]#position doit etre coherent avec action
+VITESSE = 1 #
+#NB: L'action de tourner commence des que la variable TURN est changée
 
 #TOURNER EN AVANCANT
 # en supposant rayon de rotation a 0.2m, vlin = 0.1m/s, angle desire = 90deg, dilatation du temps avec facteur 83.33 pour faire correspondre 6ms a 500ms en realite
@@ -42,7 +44,23 @@ Text = "Avancer" if ACTION == 2 else "Reculer"
 TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "tout droit"
 
 #################################### DEF ##########################################
+def estimate_spike_frequency(I, tau, threshold, reset_value, v_init=0):
 
+    if I <= threshold:
+        # If input current is not enough to reach the threshold, the neuron won't spike
+        return 0
+    
+    # Calculate the time it takes to reach the threshold
+    time_to_spike = -tau * math.log((threshold - I) / (v_init - I))
+    
+    # Total period of spiking includes the time to reset as well
+    time_to_reset = -tau * math.log((reset_value - I) / (v_init - I))
+    
+    # Calculate the total time for one spike cycle (spike + reset)
+    total_spike_cycle_time = time_to_spike + time_to_reset
+    
+    
+    return total_spike_cycle_time
 
 
 def delay_maker(N, start, delay):
@@ -145,6 +163,7 @@ GControl = NeuronGroup(1, eqs, threshold='v>seuilControle', reset='v=0', method=
 GAv = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
 GRe = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
 
+
 GVitesseAvance = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')# 2 neurones pour controler les 2 cotes des pattes séparément
 GVitesseRecul = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')
 
@@ -202,6 +221,13 @@ SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
 SInhib.connect(condition='i==j')  
 
 
+SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
+SVitesseAvance.connect(i=2, j = range(len(GAv)))
+SVitesseAvance.w = '0.05'
+
+SVitesseRecule = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseRecule.connect(i=2, j = range(len(GRe)))
+SVitesseRecule.w = '0.018'
 
 #Synapses pour aller a droite et a gauche en avancant
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
@@ -216,6 +242,7 @@ SVitesseAvance_cote_gauche.w = '0.05'
 #Synapses pour aller a droite et a gauche en reculant
 SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
+#SVitesseRecul_cote_droit.connect(i=2, j = range(NB_PATTES))
 SVitesseRecul_cote_droit.w = '0.018'
 
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
@@ -430,13 +457,13 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 
 # VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE AVANCER                 NE PAS SUPPRIMER
 
-# fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
-# for i in range(NB_PATTES):
-#     ax = axes[i]
-#     ax.plot(MAv.t/ms, MAv.v[i], color='orange')
-#     ax.axhline(y=seuilAv, ls='--', color='g')
-#     ax.set_ylabel('Potentiel')
-#     ax.set_title(f'Neurone {i} Avancer')
+fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
+for i in range(NB_PATTES):
+    ax = axes[i]
+    ax.plot(MAv.t/ms, MAv.v[i], color='orange')
+    ax.axhline(y=seuilAv, ls='--', color='g')
+    ax.set_ylabel('Potentiel')
+    ax.set_title(f'Neurone {i} Avancer')
 
 ########### OU
 
