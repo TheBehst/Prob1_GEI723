@@ -4,8 +4,8 @@ import math
 
 ############################### 3 CHOIX UTILISATEURS ################################################
 
-TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT
-ACTION = 2#2 = AVANCER, 1 = RECULER
+TURN =1# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT
+ACTION = 1#2 = AVANCER, 1 = RECULER
 NB_PATTES = 6 # doit etre pair
 VITESSE = 1 #
 #NB: L'action de tourner commence des que la variable TURN est changée
@@ -28,7 +28,7 @@ if not (NB_PATTES > 0 and NB_PATTES % 2 == 0):
 if ACTION not in [1, 2]:
     ACTION = 1
 
-Text = "avancer" if ACTION == 2 else "reculer"
+Text = "Avancer" if ACTION == 2 else "Reculer"
 TextDirection = "a gauche" if TURN == 1 else "a droite" if TURN == 2 else "tout droit"
 
 #################################### DEF ##########################################
@@ -65,37 +65,72 @@ def odd_numbers(N):
 def even_numbers(N):
     return [i for i in range(0, N, 2)]
 
+def definir_temps(TURN, ACTION):
+    t_start_base_av = 0* ms 
+    t_end_base_av = 36* ms 
+    t_start_base_re = 0* ms 
+    t_end_base_re = 198* ms 
+    
+    dephase = 3 * ms if TURN == 1 and ACTION == 2 else 0
+    dephase_re = 16.5 * ms if TURN == 1 and ACTION == 1 else 0
+    
+    if ACTION == 2 and TURN != 0:  # Avancer
+        t_start_av = t_start_base_av + dephase
+        t_end_av = t_end_base_av + dephase
+        t_start_re = 0* ms 
+        t_end_re = 0* ms 
+    elif ACTION == 1 and TURN != 0:  # Reculer
+        t_start_re = t_start_base_re + dephase_re
+        t_end_re = t_end_base_re + dephase_re
+        t_start_av = 0* ms 
+        t_end_av = 0* ms 
+    else:
+        t_start_re = 0* ms 
+        t_end_re = 0* ms 
+        t_start_av = 0* ms 
+        t_end_av = 0* ms 
 
+    return t_start_av, t_end_av, t_start_re, t_end_re
 ############################### VALEURS INITS ################################################
 
 
-
+# definition des courants d entrees
+# Pour la direction
 LARGE_CURRENT = 2
 SMALL_CURRENT = 1
+Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
+
+#Pour tourner
 CURRENT_TURN_AV = 5
 CURRENT_TURN_RE = 5
-CURRENTS_VITESSE = [0,0.2,0.4]
-
-Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
-Current_Turn_default = 0.05
-
+Current_Turn_default = 0
 
 Current_Turn_Av_Left = CURRENT_TURN_AV if TURN ==  1 and ACTION == 2 else Current_Turn_default
 Current_Turn_Av_Right = CURRENT_TURN_AV if TURN ==  2  and ACTION == 2 else Current_Turn_default
 Current_Turn_Re_Left = CURRENT_TURN_RE if TURN ==  1 and ACTION == 1 else Current_Turn_default
 Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Current_Turn_default
 
-Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
+# le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
+t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
+# print(f"Avancer: t_start_av = {t_start_av}, t_end_av = {t_end_av}")
+# print(f"Reculer: t_start_re = {t_start_re}, t_end_re = {t_end_re}")
+
+
 # pour tourner
 
 # TODO Modifier ces temps dans le cas ou y a le dephase : je GVitesse doit se stoper avant ( du temps de dephasage)
 # POUR eviter le 24.2  dans : par exemple
-# Délais entre les spikes pour le neurone 1 : [16.5 16.5 16.5 16.5 16.5 16.5 16.5 16.5 16.5 16.5 24.2 33.  33. ] ms
-t_start = 0 * ms   # Temps de début
-t_end = 36 * ms    # Temps de fin
 
-t_start_re = 0 * ms   # Temps de début
-t_end_re = 198 * ms    # Temps de fin
+# tourner a droite :
+#neurone 0 (Avancer) : [3.  3.  3.  3.  3.  3.  3.  3.  3.  3.  3.  4.8 6.  6.  6.
+
+# tourner a gauche :
+#neurone 1 (Avancer) : [3.  3.  3.  3.  3.  3.  3.  3.  3.  3.  4.2 6.  6.  6.
+
+
+
+
+
 start_scope()
 
 SeuilTourner = 0.1
@@ -111,6 +146,8 @@ spike_count : integer
 t_start : second
 t_end : second
 """
+
+
 ################################### GROUPES DE NEURONES ############################################
 
 GControl = NeuronGroup(1, eqs, threshold='v>seuilControle', reset='v=0', method='euler')
@@ -126,24 +163,24 @@ GAv.tau = 10 * ms
 GRe.tau = 500 * ms
 GControl.I = Current
 
-GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
+GVitesseAvance.I = [Current_Turn_default, Current_Turn_default]
 GVitesseAvance.tau = 10 * ms
 
-GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
+GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
 GVitesseRecul.tau = 50* ms#
 
 
-@network_operation(dt=1*ms)  # Met à jour à chaque pas de temps
+@network_operation(dt=0.5*ms)  # Met à jour à chaque pas de temps
 def update_current():
-    if GVitesseAvance.t < t_end and GVitesseAvance.t > t_start:
-        GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
-    if GVitesseAvance.t > t_end:
-        GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+    if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
+        GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
+    if GVitesseAvance.t > t_end_av - 0.5*ms:
+        GVitesseAvance.I = [Current_Turn_default, Current_Turn_default]
 
-    if GVitesseRecul.t < t_end_re and GVitesseRecul.t > t_start_re:
-        GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
-    if GVitesseRecul.t > t_end_re:
-        GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+    if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
+        GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right]
+    if GVitesseRecul.t > t_end_re -0.5*ms:
+        GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
 
 ################################ SYNAPSES ###############################################
 
