@@ -2,22 +2,36 @@ from brian2 import *
 import matplotlib.pyplot as plt
 import math
 
-############################### 3 CHOIX UTILISATEURS ################################################
+############################### 4 CHOIX UTILISATEURS ################################################
 
-TURN =2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
+TURN =0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION = 1#2 = AVANCER, 1 = RECULER
 NB_PATTES = 6 # doit etre pair
 
-PRESCENCE_OBSTACLE = False
+PRESCENCE_OBSTACLE = True
 
-position= 1# avant =1,
-temps_apparition= 24 *ms # multiple de 6 : temps d apparition de l obstacle
-temps_action= 168 *ms # multiple de 6 : temps pour gerer l obstacle
+position= 3 # 1=avant , 3=droite, 4 = gauche
+temps_apparition= 115.5 *ms # : temps d apparition de l obstacle
+temps_action= 99 *ms #temps pour gerer l obstacle
+
+# REGLES TEMPS D APPARITION et TEMPS ACTION
+# obstacle devant : multiple de 6 , NB il y aura tj un pb sur le 1er spike du neurone 1 reculer, voir Note 3
+# obstacle heurte a droite en avancant: multiple de 6 + 3,  et temps d action k*3
+# obstacle heurte a droite en reculant: multiple de 33 + 16.5, et temps d action + k*33 ex : 82.5 et 148.5
+
+
+
+OBSTACLE = [None, None, None]
 if PRESCENCE_OBSTACLE:
     OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]#position doit etre coherent avec action
 VITESSE = 1 #
+
+# Notes : 
+
+#Note 1 :
 #NB: L'action de tourner commence des que la variable TURN est changée
 
+#Note 2 :
 #TOURNER EN AVANCANT
 # en supposant rayon de rotation a 0.2m, vlin = 0.1m/s, angle desire = 90deg, dilatation du temps avec facteur 83.33 pour faire correspondre 6ms a 500ms en realite
 # On obtient que l'on souhaite faire 12 spikes de 0.3 sec pour tourner ( on double la vitesse d'un cote).
@@ -26,12 +40,13 @@ VITESSE = 1 #
 # en supposant rayon de rotation a 0.2m, vlin = 0.1m/s, angle desire = 90deg, dilatation du temps avec facteur 15.15 pour faire correspondre 33ms a 500ms en realite
 # On obtient que l'on souhaite faire 12 spikes de 16.5 sec pour tourner, (  on double la vitesse d'un cote).
 
-
+#Note 3 :
 # OBSTACLE EN AVANCANT
 # Pour le neurone 1, le dephasage n est pas respecte pour le 1er spike car l'obstacle est decouvert lorsque les neurones sont a moite charges :
 # ( si on regarde le moment ou le neurone de controle change de courant pour passer de "avancer" a "reculer" + delai de propagation : on observe le moment ou l impact du changement se fait sentir sur les pattes). 
 # et comme il y a toujours un dephasage entre les pattes gauches et les pattes droites,
 # on ne pourra jamais faire en sorte que l 'obstacle soit decouvert lorsque les neurones sont dechargés (PM a 0) sur les pattes droite ET gauche.
+# SAUF SI ON FAIT 2 NEURONES DANS OBSTACLE DEVANT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # VERIFICATION ET VALEURS PAR DEFAUT
 if not (NB_PATTES > 0 and NB_PATTES % 2 == 0):
@@ -42,24 +57,14 @@ if ACTION not in [1, 2]:
 
 Text = "Avancer" if ACTION == 2 else "Reculer"
 TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "tout droit"
-
+TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1 else "None"
 #################################### DEF ##########################################
 def estimate_spike_frequency(I, tau, threshold, reset_value, v_init=0):
-
     if I <= threshold:
-        # If input current is not enough to reach the threshold, the neuron won't spike
         return 0
-    
-    # Calculate the time it takes to reach the threshold
     time_to_spike = -tau * math.log((threshold - I) / (v_init - I))
-    
-    # Total period of spiking includes the time to reset as well
     time_to_reset = -tau * math.log((reset_value - I) / (v_init - I))
-    
-    # Calculate the total time for one spike cycle (spike + reset)
     total_spike_cycle_time = time_to_spike + time_to_reset
-    
-    
     return total_spike_cycle_time
 
 
@@ -132,11 +137,19 @@ t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
 CURRENT_OBSTACLE = 9
 CURRENT_NO_OBSTACLE = 0
 
+# devant
 t_start_obstacle_devant = 0*ms
 t_end_obstacle_devant  = 0*ms 
 if PRESCENCE_OBSTACLE and OBSTACLE[0] == 1:
     t_start_obstacle_devant  = OBSTACLE[1]
     t_end_obstacle_devant  = OBSTACLE[2]  
+
+# a droite
+t_start_obstacle_droite = 0*ms
+t_end_obstacle_droite  = 0*ms 
+if PRESCENCE_OBSTACLE and OBSTACLE[0] == 3:
+    t_start_obstacle_droite = OBSTACLE[1]
+    t_end_obstacle_droite  = OBSTACLE[2]  
 
 
 start_scope()
@@ -170,6 +183,11 @@ GVitesseRecul = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0', me
 GObstacleDevant = NeuronGroup(1, eqs, threshold='v>=seuilObstacle', reset='v=0', method='euler')
 GObstacleDevant.I = CURRENT_NO_OBSTACLE   
 GObstacleDevant.tau = 1 * ms 
+
+GObstacleDroite = NeuronGroup(2, eqs, threshold='v>=seuilObstacle', reset='v=0', method='euler')
+GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_NO_OBSTACLE] 
+GObstacleDroite.tau = 0.1 * ms 
+
 GControl.tau = 1 * ms
 GAv.tau = 10 * ms 
 GRe.tau = 500 * ms
@@ -196,11 +214,25 @@ def update_current():
 
 
 @network_operation(dt=0.2*ms)
-def update_obstacle():
+def update_obstacle_devant():
     if GObstacleDevant.t >= t_start_obstacle_devant and GObstacleDevant.t < t_end_obstacle_devant:
         GObstacleDevant.I = CURRENT_OBSTACLE 
     if GObstacleDevant.t >= t_end_obstacle_devant:
         GObstacleDevant.I = CURRENT_NO_OBSTACLE 
+
+@network_operation(dt=0.5*ms)
+def update_obstacle_droite():
+    if ACTION == 2:
+        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
+            GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+        if GObstacleDroite.t >= t_end_obstacle_droite:
+                GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+    if ACTION == 1:
+        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
+            GObstacleDroite.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
+        if GObstacleDroite.t >= t_end_obstacle_droite:
+            GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
 ################################ SYNAPSES ###############################################
 
@@ -221,13 +253,13 @@ SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
 SInhib.connect(condition='i==j')  
 
 
-SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-SVitesseAvance.connect(i=2, j = range(len(GAv)))
-SVitesseAvance.w = '0.05'
+# SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
+# SVitesseAvance.connect(i=2, j = range(len(GAv)))
+# SVitesseAvance.w = '0.05'
 
-SVitesseRecule = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-SVitesseRecule.connect(i=2, j = range(len(GRe)))
-SVitesseRecule.w = '0.018'
+# SVitesseRecule = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+# SVitesseRecule.connect(i=2, j = range(len(GRe)))
+# SVitesseRecule.w = '0.018'
 
 #Synapses pour aller a droite et a gauche en avancant
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
@@ -250,6 +282,7 @@ SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = '0.018'
 
 # OBSTACLES
+# DEVANT
 #SI il y a un obstacle devant : GControl passe de  "avance " à "recule"  
 SObstacleDevantControl = Synapses(GObstacleDevant, GControl, 'w : 1', on_pre='v_post -= w')
 SObstacleDevantControl.connect(i=0, j=0)  
@@ -260,6 +293,18 @@ SObstacleDevantControl.w = '0.235'
 # SObstacleDevant_GVitesseAvance.connect(i=0, j=range(len(GVitesseAvance)))  
 # SObstacleDevant_GVitesseAvance.w = '0'
 
+# A DROITE
+SObstacledroite_GVitesseAvance = Synapses(GObstacleDroite, GVitesseAvance, 'w : 1', on_pre='v_post += w')
+SObstacledroite_GVitesseAvance.connect(i=0, j=0)  
+SObstacledroite_GVitesseAvance.w = '0.10' 
+
+SObstacledroite_GVitesseRecule= Synapses(GObstacleDroite, GVitesseRecul, 'w : 1', on_pre='v_post += w')
+SObstacledroite_GVitesseRecule.connect(i=1, j=0)  
+SObstacledroite_GVitesseRecule.w = '0.011' #plus petit 0.011 = 1  plus grans 0,01 = 1.2  veut 1.1
+
+
+
+
 ########################### MONITOR ####################################
 
 MControl = StateMonitor(GControl, 'v', record=True)
@@ -268,6 +313,7 @@ MRe = StateMonitor(GRe, 'v', record=True)
 MVitesseAvance = StateMonitor(GVitesseAvance, 'v', record=True)
 MVitesseRecul = StateMonitor(GVitesseRecul, 'v', record=True)
 MObstacleDevant = StateMonitor(GObstacleDevant, 'v', record=True)
+MObstacleDroite = StateMonitor(GObstacleDroite, 'v', record=True)
 
 
 # Moniteur pour enregistrer les spikes des neurones
@@ -277,6 +323,8 @@ spike_monitor_av = SpikeMonitor(GAv)
 spike_monitor_CtrlVit_AV = SpikeMonitor(GVitesseAvance)
 spike_monitor_CtrlVit_Re = SpikeMonitor(GVitesseRecul)
 spike_monitor_Obst_devant = SpikeMonitor(GObstacleDevant)
+spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
+
 
 run(300*ms)
 
@@ -322,19 +370,23 @@ spike_times_obst_devant = spike_monitor_Obst_devant.spike_trains()[0]
 delays_between_spikes_obst_devant = diff(spike_times_obst_devant)
 
 
+# obtacle droite
+
+spike_times_obst_droite = spike_monitor_Obst_droite.spike_trains()[0]
+delays_between_spikes_obst_droite = diff(spike_times_obst_droite)
 
 
 # Afficher les résultats
 print(f"\n-------------------------------- CONTROL DIRECTION-------------------------------------------------------")
 
 #print(f"Temps de spikes pour le neurone 0 : {spike_times_neuron_0_re}")
-print(f"Délais entre les spikes pour le CONTROL : {delays_between_spikes_ctrl}")
+#print(f"Délais entre les spikes pour le CONTROL : {delays_between_spikes_ctrl}")
 
 # Afficher les résultats
 print(f"\n-------------------------------- OBSTACLE DEVANT -------------------------------------------------------")
 
 #print(f"Temps de spikes pour le neurone 0 : {spike_times_neuron_0_re}")
-print(f"Délais entre les spikes pour le OBSTACLE DEVANT : {delays_between_spikes_obst_devant}")
+#print(f"Délais entre les spikes pour le OBSTACLE DEVANT : {delays_between_spikes_obst_devant}")
 
 
 print(f"\n-------------------------------- RECULER -------------------------------------------------------")
@@ -351,24 +403,29 @@ print(f"Temps de spikes pour le neurone 1 (Avancer) : {spike_times_neuron_1_av}"
 print(f"Délais entre les spikes pour le neurone 1 (Avancer) : {delays_between_spikes_1_av}")
 
 
-# print(f"\n---------------------------------- CTRLVIT_AV -----------------------------------------------------")
+print(f"\n---------------------------------- CTRLVIT_AV -----------------------------------------------------")
 
-# print(f"Temps de spikes pour le neurone 0 (CtrlVit_AV) : {spike_times_neuron_0_CtrlVit_AV}")
-# print(f"Délais entre les spikes pour le neurone 0 (CtrlVit_AV) : {delays_between_spikes_0_CtrlVit_AV}")
-# print(f"Temps de spikes pour le neurone 1 (CtrlVit_AV) : {spike_times_neuron_1_CtrlVit_AV}")
-# print(f"Délais entre les spikes pour le neurone 1 (CtrlVit_AV) : {delays_between_spikes_1_CtrlVit_AV}")
+print(f"Temps de spikes pour le neurone 0 (CtrlVit_AV) : {spike_times_neuron_0_CtrlVit_AV}")
+print(f"Délais entre les spikes pour le neurone 0 (CtrlVit_AV) : {delays_between_spikes_0_CtrlVit_AV}")
+print(f"Temps de spikes pour le neurone 1 (CtrlVit_AV) : {spike_times_neuron_1_CtrlVit_AV}")
+print(f"Délais entre les spikes pour le neurone 1 (CtrlVit_AV) : {delays_between_spikes_1_CtrlVit_AV}")
 
-# print(f"\n---------------------------------- CTRLVIT_Re -----------------------------------------------------")
+print(f"\n-------------------------------- OBSTACLE DROITE -------------------------------------------------------")
 
-# print(f"Temps de spikes pour le neurone 0 (CtrlVit_Re) : {spike_times_neuron_0_CtrlVit_Re}")
-# print(f"Délais entre les spikes pour le neurone 0 (CtrlVit_Re) : {delays_between_spikes_0_CtrlVit_Re}")
-# print(f"Temps de spikes pour le neurone 1 (CtrlVit_Re) : {spike_times_neuron_1_CtrlVit_Re}")
-# print(f"Délais entre les spikes pour le neurone 1 (CtrlVit_Re) : {delays_between_spikes_1_CtrlVit_Re}")
+#print(f"Temps de spikes pour le neurone 0 : {spike_times_neuron_0_re}")
+print(f"Délais entre les spikes pour le OBSTACLE DROITE : {delays_between_spikes_obst_droite}")
+
+print(f"\n---------------------------------- CTRLVIT_Re -----------------------------------------------------")
+
+print(f"Temps de spikes pour le neurone 0 (CtrlVit_Re) : {spike_times_neuron_0_CtrlVit_Re}")
+print(f"Délais entre les spikes pour le neurone 0 (CtrlVit_Re) : {delays_between_spikes_0_CtrlVit_Re}")
+print(f"Temps de spikes pour le neurone 1 (CtrlVit_Re) : {spike_times_neuron_1_CtrlVit_Re}")
+print(f"Délais entre les spikes pour le neurone 1 (CtrlVit_Re) : {delays_between_spikes_1_CtrlVit_Re}")
 ##############################################################################
 
 # Visualiser les résultats
 fig1, axes = plt.subplots(4, 1, sharex=True)
-fig1.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ( à {TexteObstacle}  de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
 # ax = axes[0]
 # ax.plot(MControl.t/ms, MControl.v[0], color='blue')
 # ax.axhline(y=seuilControle, ls='--', color='g')
@@ -380,6 +437,13 @@ fig1.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
 # ax.axhline(y=seuilObstacle, ls='--', color='g')
 # ax.set_ylabel('Potentiel')
 # ax.set_title(f'Neurone de obstacle devant')
+
+# ax = axes[0]
+# ax.plot(MObstacleDroite.t/ms, MObstacleDroite.v[0], color='blue')
+# ax.axhline(y=seuilObstacle, ls='--', color='g')
+# ax.set_ylabel('Potentiel')
+# ax.set_title(f'Neurone de obstacle droite  ( de {OBSTACLE[1]} a {OBSTACLE[2]} ) ')
+
 
 ax = axes[0]
 ax.plot(MAv.t/ms, MAv.v[0], color='orange')
@@ -414,7 +478,7 @@ fig1.tight_layout(rect=[0.01, 0.01, 0.01, 0.01])  # Ajuste les limites de la fig
 fig1.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-graphes
 
 fig2, axes = plt.subplots(4, 1, sharex=True)
-fig2.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ( à {TexteObstacle}  de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
 
 # ax = axes[0]
 # ax.plot(MControl.t/ms, MControl.v[0], color='blue')
@@ -457,13 +521,13 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 
 # VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE AVANCER                 NE PAS SUPPRIMER
 
-fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
-for i in range(NB_PATTES):
-    ax = axes[i]
-    ax.plot(MAv.t/ms, MAv.v[i], color='orange')
-    ax.axhline(y=seuilAv, ls='--', color='g')
-    ax.set_ylabel('Potentiel')
-    ax.set_title(f'Neurone {i} Avancer')
+# fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
+# for i in range(NB_PATTES):
+#     ax = axes[i]
+#     ax.plot(MAv.t/ms, MAv.v[i], color='orange')
+#     ax.axhline(y=seuilAv, ls='--', color='g')
+#     ax.set_ylabel('Potentiel')
+#     ax.set_title(f'Neurone {i} Avancer')
 
 ########### OU
 
