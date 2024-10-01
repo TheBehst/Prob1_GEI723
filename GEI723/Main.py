@@ -321,18 +321,20 @@ SControlRe.w = '0.036'#33ms
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
 SInhib.connect(condition='i==j')  
 
+#Synapses pour aller a droite et a gauche en avancant
+SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
+SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
+SVitesseAvance_cote_droit.w = '0.05'
+
 SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-SVitesseAvance.connect(i=2, j = range(len(GAv)))
+SVitesseAvance.connect(i=1, j = range(len(GAv)))
 SVitesseAvance.w = '0.05'
 
 SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul.connect(i=2, j = range(len(GRe)))
 SVitesseRecul.w = '0.018'
 
-#Synapses pour aller a droite et a gauche en avancant
-SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
-SVitesseAvance_cote_droit.w = '0.05'
+
 
 
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
@@ -416,9 +418,22 @@ spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 def update_current():
     if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
         GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
+        delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+        SControlAv.delay = delais_av * ms
+        SVitesseAvance.delay = delais_av * ms
+
+        SControlRe.delay = delais_re * ms
+        SVitesseRecul.delay = delais_re * ms
     if GVitesseAvance.t > t_end_av - 0.5*ms:
         GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+        delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+        SControlAv.delay = delais_av * ms
+        SVitesseAvance.delay = delais_av * ms
 
+        SControlRe.delay = delais_re * ms
+        SVitesseRecul.delay = delais_re * ms
     if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
         GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
     if GVitesseRecul.t > t_end_re -0.5*ms:
@@ -677,13 +692,13 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 
 # VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE AVANCER                 NE PAS SUPPRIMER
 
-# fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
-# for i in range(NB_PATTES):
-#     ax = axes[i]
-#     ax.plot(MAv.t/ms, MAv.v[i], color='orange')
-#     ax.axhline(y=seuilAv, ls='--', color='g')
-#     ax.set_ylabel('Potentiel')
-#     ax.set_title(f'Neurone {i} Avancer')
+fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
+for i in range(NB_PATTES):
+    ax = axes[i]
+    ax.plot(MAv.t/ms, MAv.v[i], color='orange')
+    ax.axhline(y=seuilAv, ls='--', color='g')
+    ax.set_ylabel('Potentiel')
+    ax.set_title(f'Neurone {i} Avancer')
 
 ########### OU
 
