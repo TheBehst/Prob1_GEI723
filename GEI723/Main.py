@@ -7,8 +7,9 @@ import math
 TURN =0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION = 2#2 = AVANCER, 1 = RECULER
 NB_PATTES = 6 # doit etre pair
+VITESSE = 1 #
 
-PRESCENCE_OBSTACLE = True
+PRESCENCE_OBSTACLE = False
 
 position= 3 # 1=avant , 3=droite, 4 = gauche
 temps_apparition= 69 *ms # : temps d apparition de l obstacle
@@ -66,13 +67,91 @@ TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "tou
 TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
 
 #################################### DEF ##########################################
-def estimate_spike_frequency(I, tau, threshold, reset_value, v_init=0):
+def calculate_spike_cycle_period_with_spikes(input_spike_periods, input_weights, threshold, tau, v_init=0):
+     # Calculate the input contributions from each neuron over one spike cycle
+    input_contributions = [
+        weight * (1 - np.exp(-period / tau)) 
+        for weight, period in zip(input_weights, input_spike_periods)
+    ]
+    
+    # Sum the contributions from all inputs
+    total_input_per_cycle = sum(input_contributions)
+
+    if total_input_per_cycle <= 0:
+        raise ValueError("Total input is insufficient to reach the threshold.")
+    
+    # Calculate how many cycles it takes for the target neuron to reach its threshold
+    cycles_to_threshold = (threshold - v_init) / total_input_per_cycle
+    
+    # The total spike cycle period is the average of the input spike periods multiplied by the number of cycles
+    avg_input_period = sum(input_spike_periods) / len(input_spike_periods)
+    spike_cycle_period = cycles_to_threshold * avg_input_period
+
+    return spike_cycle_period
+
+
+def calculate_spike_period_with_I(I, tau, threshold, reset_value, v_init=0):
+
+    if isinstance(tau, Quantity):
+        tau = tau.item()  # Extracts the scalar value of the quantity (in base units, e.g., seconds)
+
     if I <= threshold:
+        # If input current is not enough to reach the threshold, the neuron won't spike
         return 0
-    time_to_spike = -tau * math.log((threshold - I) / (v_init - I))
-    time_to_reset = -tau * math.log((reset_value - I) / (v_init - I))
+    
+    # Calculate the time it takes to reach the threshold
+    time_to_spike = -tau * np.log((threshold - I) / (v_init - I))
+    
+    # Calculate the time it takes to reset
+    time_to_reset = -tau * np.log((reset_value - I) / (v_init - I))
+    
+    # Total time for one spike cycle (spike + reset)
     total_spike_cycle_time = time_to_spike + time_to_reset
+    
     return total_spike_cycle_time
+
+def gestionnaire_delais(SVitesseAvance_w, SControlAv_w, SControlRe_w, SVitesseAvance_cote_gauche_w, SVitesseRecul_cote_droit_w, GVitesseAvance_I,
+                        GControl_I, GVitesseRecul_I, GControl_tau, GVitesseAvance_tau,  GVitesseRecul_tau, GAv_tau, GRe_tau):
+    weightsAv = [float(SVitesseAvance_w[0]), float(SControlAv_w[0]),  float(SVitesseAvance_cote_gauche_w[0])]
+    weightsRe = [float(SVitesseAvance_w[0]), float(SControlRe_w[0]), float(SVitesseRecul_cote_droit_w[0])]
+    T_spikes_recu_AvDr = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GVitesseAvance_I[0], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
+    T_spikes_recu_AvG = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GVitesseAvance_I[1], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
+    T_spikes_recu_ReDr = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GVitesseRecul_I[0], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
+    T_spikes_recu_ReG = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+                    float(calculate_spike_period_with_I(GVitesseRecul_I[1], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
+    T_spike_avancer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvDr, weightsAv, seuilAv, GAv_tau)
+    T_spike_avancer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvG, weightsAv, seuilAv, GAv_tau)
+    T_spike_reculer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReDr, weightsRe, seuilRe, GRe_tau)
+    T_spike_reculer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReG, weightsRe, seuilRe, GRe_tau)
+    return delay_maker2(T_spike_avancer_droit, T_spike_avancer_gauche, T_spike_reculer_droit, T_spike_reculer_gauche, NB_PATTES)
+
+def delay_maker2(x1, x2, x3, x4, N):
+    if N < 6 or N % 2 != 0:
+        raise ValueError("N must be an even number greater than or equal to 6")
+
+    list1 = [0] * N
+    list2 = [0] * N
+
+    # Fill list1: even indices alternate between 0 and x1, odd indices alternate between x2 and 0
+    for i in range(1, N, 4):  # Odd indices for list1 get x2
+        list1[i] = x2
+    for i in range(2, N, 4):  # Even indices for list1 get x1
+        list1[i] = x1
+
+    # Fill list2: even indices alternate between 0 and x3, odd indices alternate between x4 and 0
+    for i in range(1, N, 4):  # Odd indices for list2 get x4
+        list2[i] = x4
+    for i in range(2, N, 4):  # Even indices for list2 get x3
+        list2[i] = x3
+
+    return list1, list2
 
 
 def delay_maker(N, start, delay):
@@ -122,6 +201,8 @@ def definir_temps(TURN, ACTION):
 # Pour la direction
 LARGE_CURRENT = 2
 SMALL_CURRENT = 1
+CURRENTS_VITESSE = [0, 0.2, 0.4]
+Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
 Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
 
 #Pour tourner
@@ -201,13 +282,12 @@ GRe = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilRe', reset='v=0', method='e
 GRe.tau = 500 * ms
 
 
-GVitesseAvance = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')# 2 neurones pour controler les 2 cotes des pattes séparément
-GVitesseAvance.I = [Current_Turn_default, Current_Turn_default]
+GVitesseAvance = NeuronGroup(3, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')# 2 neurones pour controler les 2 cotes des pattes séparément
+GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
 GVitesseAvance.tau = 10 * ms
 
-GVitesseRecul = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')
-
-GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
+GVitesseRecul = NeuronGroup(3, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')
+GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
 GVitesseRecul.tau = 50* ms
 
 GObstacleDevant = NeuronGroup(1, eqs, threshold='v>=seuilObstacle', reset='v=0', method='euler')
@@ -223,77 +303,31 @@ GObstacleGauche.I = [CURRENT_NO_OBSTACLE , CURRENT_NO_OBSTACLE]
 GObstacleGauche.tau = 0.1 * ms 
 
 
-
-
-
-
-@network_operation(dt=0.5*ms) 
-def update_current():
-    if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
-        GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
-    if GVitesseAvance.t > t_end_av - 0.5*ms:
-        GVitesseAvance.I = [Current_Turn_default, Current_Turn_default]
-
-    if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
-        GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right]
-    if GVitesseRecul.t > t_end_re -0.5*ms:
-        GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
-
-
-@network_operation(dt=0.2*ms)
-def update_obstacle_devant():
-    if GObstacleDevant.t >= t_start_obstacle_devant and GObstacleDevant.t < t_end_obstacle_devant:
-        GObstacleDevant.I = CURRENT_OBSTACLE 
-    if GObstacleDevant.t >= t_end_obstacle_devant:
-        GObstacleDevant.I = CURRENT_NO_OBSTACLE 
-
-@network_operation(dt=0.5*ms)
-def update_obstacle_droite():
-    if ACTION == 2:
-        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
-            GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
-        if GObstacleDroite.t >= t_end_obstacle_droite:
-                GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
-    if ACTION == 1:
-        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
-            GObstacleDroite.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
-        if GObstacleDroite.t >= t_end_obstacle_droite:
-            GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
-
-@network_operation(dt=1*ms)
-def update_obstacle_gauche():
-    if ACTION == 2:
-        if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
-        if GObstacleGauche.t >= t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
-    if ACTION == 1:
-        if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
-        if GObstacleGauche.t >= t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
 ################################ SYNAPSES ###############################################
 
 
 SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
 SControlAv.connect(i=0, j=range(len(GAv)))  
 SControlAv.w = '0.14'#6ms
-SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
+#SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 SControlRe.connect(i=0, j=range(len(GRe)))  
 SControlRe.w = '0.036'#33ms
-SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms
+#SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
 SInhib.connect(condition='i==j')  
 
+SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
+SVitesseAvance.connect(i=2, j = range(len(GAv)))
+SVitesseAvance.w = '0.05'
+
+SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseRecul.connect(i=2, j = range(len(GRe)))
+SVitesseRecul.w = '0.018'
 
 #Synapses pour aller a droite et a gauche en avancant
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
@@ -346,6 +380,14 @@ SObstaclegauche_GVitesseRecule= Synapses(GObstacleGauche, GVitesseRecul, 'w : 1'
 SObstaclegauche_GVitesseRecule.connect(i=1, j=1)  
 SObstaclegauche_GVitesseRecule.w = '0.011' 
 
+#Gestion des delais
+delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+SControlAv.delay = delais_av * ms
+SVitesseAvance.delay = delais_av * ms
+
+SControlRe.delay = delais_re * ms
+SVitesseRecul.delay = delais_re * ms
 
 ########################### MONITOR ####################################
 
@@ -368,6 +410,56 @@ spike_monitor_CtrlVit_Re = SpikeMonitor(GVitesseRecul)
 spike_monitor_Obst_devant = SpikeMonitor(GObstacleDevant)
 spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
+
+########################### NETWORK OPERATIONS ###########################
+@network_operation(dt=0.5*ms) 
+def update_current():
+    if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
+        GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
+    if GVitesseAvance.t > t_end_av - 0.5*ms:
+        GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+
+    if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
+        GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
+    if GVitesseRecul.t > t_end_re -0.5*ms:
+        GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+
+
+@network_operation(dt=0.2*ms)
+def update_obstacle_devant():
+    if GObstacleDevant.t >= t_start_obstacle_devant and GObstacleDevant.t < t_end_obstacle_devant:
+        GObstacleDevant.I = CURRENT_OBSTACLE 
+    if GObstacleDevant.t >= t_end_obstacle_devant:
+        GObstacleDevant.I = CURRENT_NO_OBSTACLE 
+
+@network_operation(dt=0.5*ms)
+def update_obstacle_droite():
+    if ACTION == 2:
+        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
+            GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+        if GObstacleDroite.t >= t_end_obstacle_droite:
+                GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+    if ACTION == 1:
+        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
+            GObstacleDroite.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
+        if GObstacleDroite.t >= t_end_obstacle_droite:
+            GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+
+@network_operation(dt=1*ms)
+def update_obstacle_gauche():
+    if ACTION == 2:
+        if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
+            GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+        if GObstacleGauche.t >= t_end_obstacle_gauche:
+            GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+    if ACTION == 1:
+        if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
+            GObstacleGauche.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
+        if GObstacleGauche.t >= t_end_obstacle_gauche:
+            GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
 
 run(300*ms)
