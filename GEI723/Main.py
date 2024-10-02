@@ -6,7 +6,7 @@ import math
 
 TURN =0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION = 2#2 = AVANCER, 1 = RECULER
-NB_PATTES = 6 # doit etre pair
+NB_PATTES = 6# doit etre pair
 VITESSE = 1 #
 
 PRESCENCE_OBSTACLE = False
@@ -63,74 +63,87 @@ if ACTION not in [1, 2]:
     ACTION = 1
 
 Text = "Avancer" if ACTION == 2 else "Reculer"
-TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "tout droit"
+TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "sans tourner"
 TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
 
 #################################### DEF ##########################################
-def calculate_spike_cycle_period_with_spikes(input_spike_periods, input_weights, threshold, tau, v_init=0):
-     # Calculate the input contributions from each neuron over one spike cycle
-    input_contributions = [
-        weight * (1 - np.exp(-period / tau)) 
-        for weight, period in zip(input_weights, input_spike_periods)
-    ]
+# def calculate_spike_cycle_period_with_spikes(input_spike_periods, input_weights, threshold, tau, v_init=0):
+#      # Calculate the input contributions from each neuron over one spike cycle
+#     input_contributions = [
+#         weight * (1 - np.exp(-period / tau)) 
+#         for weight, period in zip(input_weights, input_spike_periods)
+#     ]
     
-    # Sum the contributions from all inputs
-    total_input_per_cycle = sum(input_contributions)
+#     # Sum the contributions from all inputs
+#     total_input_per_cycle = sum(input_contributions)
 
-    if total_input_per_cycle <= 0:
-        raise ValueError("Total input is insufficient to reach the threshold.")
+#     if total_input_per_cycle <= 0:
+#         raise ValueError("Total input is insufficient to reach the threshold.")
     
-    # Calculate how many cycles it takes for the target neuron to reach its threshold
-    cycles_to_threshold = (threshold - v_init) / total_input_per_cycle
+#     # Calculate how many cycles it takes for the target neuron to reach its threshold
+#     cycles_to_threshold = (threshold - v_init) / total_input_per_cycle
     
-    # The total spike cycle period is the average of the input spike periods multiplied by the number of cycles
-    avg_input_period = sum(input_spike_periods) / len(input_spike_periods)
-    spike_cycle_period = cycles_to_threshold * avg_input_period
+#     # The total spike cycle period is the average of the input spike periods multiplied by the number of cycles
+#     avg_input_period = sum(input_spike_periods) / len(input_spike_periods)
+#     spike_cycle_period = cycles_to_threshold * avg_input_period
+#     # print("cycles_to_threshold:", cycles_to_threshold)
+#     # print("avg_input_period:", avg_input_period)
 
-    return spike_cycle_period
+#     # print("spike_cycle_period:", spike_cycle_period)
+
+#     # spike_cycle_period_rounded = math.floor(spike_cycle_period)
+#     #spike_cycle_period = (spike_cycle_period+0.1)*2
+#     spike_cycle_period = spike_cycle_period+sqrt(33)
+
+#     return spike_cycle_period
 
 
-def calculate_spike_period_with_I(I, tau, threshold, reset_value, v_init=0):
+# def calculate_spike_period_with_I(I, tau, threshold, reset_value, v_init=0):
 
-    if isinstance(tau, Quantity):
-        tau = tau.item()  # Extracts the scalar value of the quantity (in base units, e.g., seconds)
+#     if isinstance(tau, Quantity):
+#         tau = tau.item()  # Extracts the scalar value of the quantity (in base units, e.g., seconds)
 
-    if I <= threshold:
-        # If input current is not enough to reach the threshold, the neuron won't spike
-        return 0
+#     if I <= threshold:
+#         # If input current is not enough to reach the threshold, the neuron won't spike
+#         return 0
     
-    # Calculate the time it takes to reach the threshold
-    time_to_spike = -tau * np.log((threshold - I) / (v_init - I))
+#     # Calculate the time it takes to reach the threshold
+#     time_to_spike = -tau * np.log((threshold - I) / (v_init - I))
     
-    # Calculate the time it takes to reset
-    time_to_reset = -tau * np.log((reset_value - I) / (v_init - I))
+#     # Calculate the time it takes to reset
+#     time_to_reset = -tau * np.log((reset_value - I) / (v_init - I))
     
-    # Total time for one spike cycle (spike + reset)
-    total_spike_cycle_time = time_to_spike + time_to_reset
+#     # Total time for one spike cycle (spike + reset)
+#     total_spike_cycle_time = time_to_spike + time_to_reset
     
-    return total_spike_cycle_time
+#     return total_spike_cycle_time
 
-def gestionnaire_delais(SVitesseAvance_w, SControlAv_w, SControlRe_w, SVitesseAvance_cote_gauche_w, SVitesseRecul_cote_droit_w, GVitesseAvance_I,
-                        GControl_I, GVitesseRecul_I, GControl_tau, GVitesseAvance_tau,  GVitesseRecul_tau, GAv_tau, GRe_tau):
-    weightsAv = [float(SVitesseAvance_w[0]), float(SControlAv_w[0]),  float(SVitesseAvance_cote_gauche_w[0])]
-    weightsRe = [float(SVitesseAvance_w[0]), float(SControlRe_w[0]), float(SVitesseRecul_cote_droit_w[0])]
-    T_spikes_recu_AvDr = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GVitesseAvance_I[0], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
-    T_spikes_recu_AvG = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GVitesseAvance_I[1], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
-    T_spikes_recu_ReDr = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GVitesseRecul_I[0], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
-    T_spikes_recu_ReG = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-                    float(calculate_spike_period_with_I(GVitesseRecul_I[1], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
-    T_spike_avancer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvDr, weightsAv, seuilAv, GAv_tau)
-    T_spike_avancer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvG, weightsAv, seuilAv, GAv_tau)
-    T_spike_reculer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReDr, weightsRe, seuilRe, GRe_tau)
-    T_spike_reculer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReG, weightsRe, seuilRe, GRe_tau)
-    return delay_maker2(T_spike_avancer_droit, T_spike_avancer_gauche, T_spike_reculer_droit, T_spike_reculer_gauche, NB_PATTES)
+# def gestionnaire_delais(SVitesseAvance_w, SControlAv_w, SControlRe_w, SVitesseAvance_cote_gauche_w, SVitesseRecul_cote_droit_w, GVitesseAvance_I,
+#                         GControl_I, GVitesseRecul_I, GControl_tau, GVitesseAvance_tau,  GVitesseRecul_tau, GAv_tau, GRe_tau):
+#     weightsAv = [float(SVitesseAvance_w[0]), float(SControlAv_w[0]),  float(SVitesseAvance_cote_gauche_w[0])]
+#     weightsRe = [float(SVitesseAvance_w[0]), float(SControlRe_w[0]), float(SVitesseRecul_cote_droit_w[0])]
+#     T_spikes_recu_AvDr = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GVitesseAvance_I[0], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
+#     T_spikes_recu_AvG = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GVitesseAvance_I[1], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
+#     T_spikes_recu_ReDr = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GVitesseRecul_I[0], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
+#     T_spikes_recu_ReG = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
+#                     float(calculate_spike_period_with_I(GVitesseRecul_I[1], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
+#     T_spike_avancer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvDr, weightsAv, seuilAv, GAv_tau)
+#     T_spike_avancer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvG, weightsAv, seuilAv, GAv_tau)
+#     # print("T_spikes_recu_AvG:", T_spikes_recu_AvG)
+#     # print("weightsAv:", weightsAv)
+#     # print("seuilAv:", seuilAv)
+#     # print("GAv_tau:", GAv_tau)
+
+#     T_spike_reculer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReDr, weightsRe, seuilRe, GRe_tau)
+#     T_spike_reculer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReG, weightsRe, seuilRe, GRe_tau)
+#     return delay_maker2(T_spike_avancer_droit, T_spike_avancer_gauche, T_spike_reculer_droit, T_spike_reculer_gauche, NB_PATTES)
 
 def delay_maker2(x1, x2, x3, x4, N):
     if N < 6 or N % 2 != 0:
@@ -154,10 +167,11 @@ def delay_maker2(x1, x2, x3, x4, N):
     return list1, list2
 
 
+
 def delay_maker(N, start, delay):
     result = []
     for i in range(N):
-        if i % 2 == 0 :  
+        if i % 4 == 0 or i % 4 == 3:  
             result.append(start)
         else:  
             result.append(start + delay)
@@ -205,6 +219,7 @@ CURRENTS_VITESSE = [0, 0.2, 0.4]
 Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
 Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
 
+runtime = 72 if ACTION == 2 else 500
 #Pour tourner
 CURRENT_TURN_AV = 5
 CURRENT_TURN_RE = 5
@@ -220,7 +235,8 @@ t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
 # print(f"Avancer: t_start_av = {t_start_av}, t_end_av = {t_end_av}")
 # print(f"Reculer: t_start_re = {t_start_re}, t_end_re = {t_end_re}")
 
-
+delais_av =3 *ms
+delais_re =16.5 *ms
 # OBSTACLE
 CURRENT_OBSTACLE = 9
 CURRENT_NO_OBSTACLE = 0
@@ -306,16 +322,46 @@ GObstacleGauche.tau = 0.1 * ms
 ################################ SYNAPSES ###############################################
 
 
-SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
+SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w ')
 SControlAv.connect(i=0, j=range(len(GAv)))  
 SControlAv.w = '0.14'#6ms
-#SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
+SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
+SControlAv.active = False
+#SControlAv.delay = [0,0,0,0,0,0]*ms
+#SControlAv.delay = [0,3,0,0,0,3]*ms
+# @network_operation(dt=1*ms)  # Cette fonction est appelée à chaque pas de temps
+# def update_delays():
+#     # Condition pour modifier le délai en fonction du temps
+#     if defaultclock.t >= t_start_av and defaultclock.t < t_end_av:
+#         SControlAv.delay = [0, 3, 0, 0, 0, 3]*ms 
+#     else:
+#         SControlAv.delay = [0, 3, 0, 0, 0, 3]*ms  
+SControlAv_delai_court = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w ')
+SControlAv_delai_court.connect(i=0, j=range(len(GAv)))  
+SControlAv_delai_court.w = '0.14'#6ms
+SControlAv_delai_court.delay = [0,0,0,0,0,0]*ms
+SControlAv_delai_court.active = False 
+
+@network_operation(dt=1*ms)
+def switch_synapses():
+    print("Délai court activé")
+    SControlAv.active = True  # Activer la synapse avec délai normal
+    # SControlAv_delai_court.active = False  # Désactiver la synapse avec délai court
+    # # Activer ou désactiver les synapses selon le temps
+    # if defaultclock.t >= t_start_av and defaultclock.t < t_end_av:
+    #     SControlAv.active = False  # Désactiver la synapse avec délai normal
+    #     SControlAv_delai_court.active = True  # Activer la synapse avec délai court
+    
+        
+
+#SControlAv_delai_court.delay = delay_maker(NB_PATTES,0,3)* ms
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 SControlRe.connect(i=0, j=range(len(GRe)))  
 SControlRe.w = '0.036'#33ms
-#SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms
+SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms
+#SControlRe.delay = [0, 16.5,0,16.5, 0, 16.5] * ms
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
@@ -325,14 +371,13 @@ SInhib.connect(condition='i==j')
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseAvance_cote_droit.w = '0.05'
+#SVitesseAvance_cote_droit.delay = delay_maker(NB_PATTES,3, 4.5)[:NB_PATTES // 2] * ms#
+SVitesseAvance_cote_droit.delay = [0,0,0]*ms
 
-SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-SVitesseAvance.connect(i=1, j = range(len(GAv)))
-SVitesseAvance.w = '0.05'
 
-SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-SVitesseRecul.connect(i=2, j = range(len(GRe)))
-SVitesseRecul.w = '0.018'
+# SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
+# SVitesseAvance.connect(i=2, j = range(len(GAv)))
+# SVitesseAvance.w = '0.05'
 
 
 
@@ -340,56 +385,153 @@ SVitesseRecul.w = '0.018'
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseAvance_cote_gauche.w = '0.05'
+#SVitesseAvance_cote_gauche.delay = [0,4.5,0]* ms#delay_maker(NB_PATTES,0, 0)[:NB_PATTES // 2] * ms#
+SVitesseAvance_cote_droit.delay = [0,0,0]*ms
+
 
 #Synapses pour aller a droite et a gauche en reculant
 SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 #SVitesseRecul_cote_droit.connect(i=2, j = range(NB_PATTES))
 SVitesseRecul_cote_droit.w = '0.018'
+#SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
+SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseRecul.connect(i=2, j = range(len(GRe)))
+SVitesseRecul.w = '0.018'
+
+
 
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = '0.018'
 
 # OBSTACLES
-# DEVANT
-#SI il y a un obstacle devant : GControl passe de  "avance " à "recule"  
-SObstacleDevantControl = Synapses(GObstacleDevant, GControl, 'w : 1', on_pre='v_post -= w')
-SObstacleDevantControl.connect(i=0, j=0)  
-SObstacleDevantControl.w = '0.235'
 
-# SI il y a un obstacle devant : on stop les actions de tourner 
-# SObstacleDevant_GVitesseAvance = Synapses(GObstacleDevant, GVitesseAvance, 'w : 1', on_pre='v_post = w')
-# SObstacleDevant_GVitesseAvance.connect(i=0, j=range(len(GVitesseAvance)))  
-# SObstacleDevant_GVitesseAvance.w = '0'
+# # DEVANT
+# #SI il y a un obstacle devant : GControl passe de  "avance " à "recule"  
+# SObstacleDevantControl = Synapses(GObstacleDevant, GControl, 'w : 1', on_pre='v_post -= w')
+# SObstacleDevantControl.connect(i=0, j=0)  
+# SObstacleDevantControl.w = '0.235'
 
-# A DROITE
-SObstacledroite_GVitesseAvance = Synapses(GObstacleDroite, GVitesseAvance, 'w : 1', on_pre='v_post += w')
-SObstacledroite_GVitesseAvance.connect(i=0, j=0)  
-SObstacledroite_GVitesseAvance.w = '0.10' 
+# # SI il y a un obstacle devant : on stop les actions de tourner 
+# # SObstacleDevant_GVitesseAvance = Synapses(GObstacleDevant, GVitesseAvance, 'w : 1', on_pre='v_post = w')
+# # SObstacleDevant_GVitesseAvance.connect(i=0, j=range(len(GVitesseAvance)))  
+# # SObstacleDevant_GVitesseAvance.w = '0'
 
-SObstacledroite_GVitesseRecule= Synapses(GObstacleDroite, GVitesseRecul, 'w : 1', on_pre='v_post += w')
-SObstacledroite_GVitesseRecule.connect(i=1, j=0)  
-SObstacledroite_GVitesseRecule.w = '0.011' 
+# # A DROITE
+# SObstacledroite_GVitesseAvance = Synapses(GObstacleDroite, GVitesseAvance, 'w : 1', on_pre='v_post += w')
+# SObstacledroite_GVitesseAvance.connect(i=0, j=0)  
+# SObstacledroite_GVitesseAvance.w = '0.10' 
+
+# SObstacledroite_GVitesseRecule= Synapses(GObstacleDroite, GVitesseRecul, 'w : 1', on_pre='v_post += w')
+# SObstacledroite_GVitesseRecule.connect(i=1, j=0)  
+# SObstacledroite_GVitesseRecule.w = '0.011' 
 
 
-# A GAUCHE
-SObstaclegauche_GVitesseAvance = Synapses(GObstacleGauche, GVitesseAvance, 'w : 1', on_pre='v_post += w')
-SObstaclegauche_GVitesseAvance.connect(i=0, j=1)  
-SObstaclegauche_GVitesseAvance.w = '0.10' 
+# # A GAUCHE
+# SObstaclegauche_GVitesseAvance = Synapses(GObstacleGauche, GVitesseAvance, 'w : 1', on_pre='v_post += w')
+# SObstaclegauche_GVitesseAvance.connect(i=0, j=1)  
+# SObstaclegauche_GVitesseAvance.w = '0.10' 
 
-SObstaclegauche_GVitesseRecule= Synapses(GObstacleGauche, GVitesseRecul, 'w : 1', on_pre='v_post += w')
-SObstaclegauche_GVitesseRecule.connect(i=1, j=1)  
-SObstaclegauche_GVitesseRecule.w = '0.011' 
+# SObstaclegauche_GVitesseRecule= Synapses(GObstacleGauche, GVitesseRecul, 'w : 1', on_pre='v_post += w')
+# SObstaclegauche_GVitesseRecule.connect(i=1, j=1)  
+# SObstaclegauche_GVitesseRecule.w = '0.011' 
 
 #Gestion des delais
-delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-SControlAv.delay = delais_av * ms
-SVitesseAvance.delay = delais_av * ms
+# delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+#                                             float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
 
-SControlRe.delay = delais_re * ms
-SVitesseRecul.delay = delais_re * ms
+
+
+# print(f"delais av {delais_av} delais re {delais_re} ")
+# SControlAv.delay = delais_av
+# SVitesseAvance.delay = delais_av 
+
+# SControlRe.delay = delais_re 
+# SVitesseRecul.delay = delais_re 
+
+
+
+########################### NETWORK OPERATIONS ###########################
+@network_operation(dt=0.1*ms) 
+def update_current():
+    if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
+        GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
+        # delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+        #                                     float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+        #SControlAv.delay = 1.5 * ms
+        #SVitesseAvance.delay = 1.5  * ms
+        #SVitesseAvance_cote_droit.delay = [0,0,0]*ms#delay_maker(NB_PATTES,3, 4.5)[:NB_PATTES // 2] * ms#
+        #SVitesseAvance_cote_gauche.delay = [0,0,0]*ms
+        #SControlAv.delay = [0,3,0,0,0,3]*ms#delay_maker(NB_PATTES,0,3)* ms
+        ##SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
+
+        #SControlRe.delay = delais_re * ms
+        #SVitesseRecul.delay = delais_re * ms
+    if GVitesseAvance.t > t_end_av - 0.5*ms:
+        GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+        #SControlAv.delay = 3 * ms
+        #SVitesseAvance.delay = 3  * ms
+        # delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+        #                                     float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+        #SControlAv.delay = delais_av * ms
+        #SVitesseAvance.delay = delais_av * ms
+
+        #SControlRe.delay = delais_re * ms
+        #SVitesseRecul.delay = delais_re * ms
+    if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
+        GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
+
+        #SControlRe.delay = [16.5, 8.25, 16.5,8.25, 16.5, 8.25] * ms
+        #SVitesseRecul_cote_droit.delay = [16.5, 8.25, 16.5]  * ms
+
+    if GVitesseRecul.t == t_end_re -0.5*ms:
+        GRe.v = [0,0,0,0,0,0]
+
+    if GVitesseRecul.t > t_end_re -0.5*ms:
+        GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+        #SControlRe.delay = [30, 16.5, 30,16.5, 30, 16.5] * ms
+        #SVitesseRecul_cote_droit.delay = [30, 16.5, 30]  * ms
+        
+
+
+
+
+# @network_operation(dt=0.2*ms)
+# def update_obstacle_devant():
+#     if GObstacleDevant.t >= t_start_obstacle_devant and GObstacleDevant.t < t_end_obstacle_devant:
+#         GObstacleDevant.I = CURRENT_OBSTACLE 
+#     if GObstacleDevant.t >= t_end_obstacle_devant:
+#         GObstacleDevant.I = CURRENT_NO_OBSTACLE 
+
+# @network_operation(dt=0.5*ms)
+# def update_obstacle_droite():
+#     if ACTION == 2:
+#         if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
+#             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+#         if GObstacleDroite.t >= t_end_obstacle_droite:
+#                 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+#     if ACTION == 1:
+#         if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
+#             GObstacleDroite.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
+#         if GObstacleDroite.t >= t_end_obstacle_droite:
+#             GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+
+# @network_operation(dt=1*ms)
+# def update_obstacle_gauche():
+#     if ACTION == 2:
+#         if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
+#             GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+#         if GObstacleGauche.t >= t_end_obstacle_gauche:
+#             GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+#     if ACTION == 1:
+#         if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
+#             GObstacleGauche.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
+#         if GObstacleGauche.t >= t_end_obstacle_gauche:
+#             GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
 ########################### MONITOR ####################################
 
@@ -413,71 +555,7 @@ spike_monitor_Obst_devant = SpikeMonitor(GObstacleDevant)
 spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
-########################### NETWORK OPERATIONS ###########################
-@network_operation(dt=0.5*ms) 
-def update_current():
-    if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
-        GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
-        delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-        SControlAv.delay = delais_av * ms
-        SVitesseAvance.delay = delais_av * ms
-
-        SControlRe.delay = delais_re * ms
-        SVitesseRecul.delay = delais_re * ms
-    if GVitesseAvance.t > t_end_av - 0.5*ms:
-        GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-        delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-        SControlAv.delay = delais_av * ms
-        SVitesseAvance.delay = delais_av * ms
-
-        SControlRe.delay = delais_re * ms
-        SVitesseRecul.delay = delais_re * ms
-    if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
-        GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
-    if GVitesseRecul.t > t_end_re -0.5*ms:
-        GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-
-
-@network_operation(dt=0.2*ms)
-def update_obstacle_devant():
-    if GObstacleDevant.t >= t_start_obstacle_devant and GObstacleDevant.t < t_end_obstacle_devant:
-        GObstacleDevant.I = CURRENT_OBSTACLE 
-    if GObstacleDevant.t >= t_end_obstacle_devant:
-        GObstacleDevant.I = CURRENT_NO_OBSTACLE 
-
-@network_operation(dt=0.5*ms)
-def update_obstacle_droite():
-    if ACTION == 2:
-        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
-            GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
-        if GObstacleDroite.t >= t_end_obstacle_droite:
-                GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
-    if ACTION == 1:
-        if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
-            GObstacleDroite.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
-        if GObstacleDroite.t >= t_end_obstacle_droite:
-            GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
-
-@network_operation(dt=1*ms)
-def update_obstacle_gauche():
-    if ACTION == 2:
-        if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
-        if GObstacleGauche.t >= t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
-    if ACTION == 1:
-        if GObstacleGauche.t >= t_start_obstacle_gauche and GObstacleGauche.t < t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
-        if GObstacleGauche.t >= t_end_obstacle_gauche:
-            GObstacleGauche.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-
-
-run(300*ms)
+run(runtime*ms)
 
 
 
@@ -539,7 +617,7 @@ delays_between_spikes_obst_gauche_n1 = diff(spike_times_obst_gauche_n1)
 print(f"\n-------------------------------- CONTROL DIRECTION-------------------------------------------------------")
 
 #print(f"Temps de spikes pour le neurone 0 : {spike_times_neuron_0_re}")
-#print(f"Délais entre les spikes pour le CONTROL : {delays_between_spikes_ctrl}")
+print(f"Délais entre les spikes pour le CONTROL : {delays_between_spikes_ctrl}")
 
 # Afficher les résultats
 print(f"\n-------------------------------- OBSTACLE DEVANT -------------------------------------------------------")
@@ -590,8 +668,18 @@ print(f"\n---------------------------------- CTRLVIT_Re ------------------------
 ##############################################################################
 
 # Visualiser les résultats
-fig1, axes = plt.subplots(4, 1, sharex=True)
-fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle}  de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
+nbfig = 2
+i=0
+if TURN !=0:
+    nbfig = 3
+
+fig1, axes = plt.subplots(nbfig , 1, sharex=True)
+if OBSTACLE[1] != None:
+    fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
+else:
+    fig1.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+
+
 # ax = axes[0]
 # ax.plot(MControl.t/ms, MControl.v[0], color='blue')
 # ax.axhline(y=seuilControle, ls='--', color='g')
@@ -616,40 +704,50 @@ fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle}  de 
 # ax.set_ylabel('Potentiel')
 # ax.set_title(f'Neurone de obstacle Gauche ')
 
-ax = axes[0]
+ax = axes[i]
 ax.plot(MAv.t/ms, MAv.v[0], color='orange')
 ax.axhline(y=seuilAv, ls='--', color='g')
 ax.set_ylabel('Potentiel')
-ax.set_title('Neurone 0 Avancer ( PATTES DE GAUCHE)')
+ax.set_title('Neurone 0 Avancer (PATTES DE GAUCHE)')
 
-ax = axes[1]
+ax = axes[i+1]
 ax.plot(MRe.t/ms, MRe.v[0], color='red')
 ax.axhline(y=seuilRe, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 0 Reculer ( PATTES DE GAUCHE)')
+ax.set_title('Neurone 0 Reculer (PATTES DE GAUCHE)')
 
-ax = axes[2]
-ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[1], color='blue')
-ax.axhline(y=SeuilTourner, ls='--', color='g')
-ax.set_ylabel('Potentiel')
-ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 1 du controle de vitesse en avancant')
+if ACTION ==2 and TURN !=0:
+    ax = axes[i+2]
+    ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[1], color='blue')
+    ax.axhline(y=SeuilTourner, ls='--', color='g')
+    ax.set_ylabel('Potentiel')
+    ax.set_xlabel('Temps (ms)')
+    ax.set_title('Neurone 1 du controle de vitesse en avancant')
 
-ax = axes[3]
-ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[1], color='grey')
-ax.axhline(y=SeuilTourner, ls='--', color='g')
-ax.set_ylabel('Potentiel')
-ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 1 du controle de vitesse en reculant')
+if ACTION ==1 and TURN !=0:
+    ax = axes[i+2]
+    ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[1], color='grey')
+    ax.axhline(y=SeuilTourner, ls='--', color='g')
+    ax.set_ylabel('Potentiel')
+    ax.set_xlabel('Temps (ms)')
+    ax.set_title('Neurone 1 du controle de vitesse en reculant')
+
+fig1.tight_layout()  
+fig1.subplots_adjust(hspace=0.7)  
 
 
 
-fig1.tight_layout(rect=[0.01, 0.01, 0.01, 0.01])  # Ajuste les limites de la figure
-fig1.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-graphes
+i=0
+fig2, axes = plt.subplots(nbfig, 1, sharex=True)
 
-fig2, axes = plt.subplots(4, 1, sharex=True)
-fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle}  de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
+if OBSTACLE[1] != None:
+    fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
+else:
+    fig2.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+
+
+
 
 # ax = axes[0]
 # ax.plot(MControl.t/ms, MControl.v[0], color='blue')
@@ -657,81 +755,151 @@ fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle}  de 
 # ax.set_ylabel('Potentiel')
 # ax.set_title(f'Neurone controle de direction avec courant pour {Text} ')
 
-ax = axes[0]
+ax = axes[i]
 ax.plot(MAv.t/ms, MAv.v[1], color='orange')
 ax.axhline(y=seuilAv, ls='--', color='g')
 ax.set_ylabel('Potentiel')
-ax.set_title('Neurone 1 Avancer ( PATTES DE DROITE)')
+ax.set_title('Neurone 1 Avancer (PATTES DE DROITE)')
 
-ax = axes[1]
+ax = axes[i+1]
 ax.plot(MRe.t/ms, MRe.v[1], color='red')
 ax.axhline(y=seuilRe, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 1 Reculer ( PATTES DE DROITE)')
+ax.set_title('Neurone 1 Reculer (PATTES DE DROITE)')
+if ACTION ==2 and TURN !=0:
 
-ax = axes[2]
-ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[0], color='blue')
-ax.axhline(y=SeuilTourner, ls='--', color='g')
-ax.set_ylabel('Potentiel')
-ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 0 du controle de vitesse en avancant')
+    ax = axes[i+2]
+    ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[0], color='blue')
+    ax.axhline(y=SeuilTourner, ls='--', color='g')
+    ax.set_ylabel('Potentiel')
+    ax.set_xlabel('Temps (ms)')
+    ax.set_title('Neurone 0 du controle de vitesse en avancant')
+if ACTION ==1 and TURN !=0:
 
-ax = axes[3]
-ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[0], color='grey')
-ax.axhline(y=SeuilTourner, ls='--', color='g')
-ax.set_ylabel('Potentiel')
-ax.set_xlabel('Temps (ms)')
-ax.set_title('Neurone 0 du controle de vitesse en reculant')
+    ax = axes[i+2]
+    ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[0], color='grey')
+    ax.axhline(y=SeuilTourner, ls='--', color='g')
+    ax.set_ylabel('Potentiel')
+    ax.set_xlabel('Temps (ms)')
+    ax.set_title('Neurone 0 du controle de vitesse en reculant')
 
 
 
-fig2.tight_layout(rect=[0.01, 0.01, 0.01, 0.01])  # Ajuste les limites de la figure
+fig2.tight_layout()  # Ajuste les limites de la figure
 fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-graphes
 
 
 # VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE AVANCER                 NE PAS SUPPRIMER
 
-fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
-for i in range(NB_PATTES):
-    ax = axes[i]
-    ax.plot(MAv.t/ms, MAv.v[i], color='orange')
-    ax.axhline(y=seuilAv, ls='--', color='g')
-    ax.set_ylabel('Potentiel')
-    ax.set_title(f'Neurone {i} Avancer')
+# fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
+# for i in range(NB_PATTES):
+#     ax = axes[i]
+#     ax.plot(MAv.t/ms, MAv.v[i], color='orange')
+#     ax.axhline(y=seuilAv, ls='--', color='g')
+#     ax.set_ylabel('Potentiel')
+#     ax.set_title(f'Neurone {i} Avancer')
 
 ########### OU
+if TURN ==0 and ACTION == 2:
 
-# fig3, axes = plt.subplots(2, 1, sharex=True)
-# fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
-# ax_pairs = axes[0]  
-# ax_odds = axes[1]   
-# colors_spectre = plt.cm.viridis(np.linspace(0, 1, NB_PATTES))
-# labels_pairs = []
-# labels_odds = []
+    fig3, axes = plt.subplots(3, 1, sharex=True)  
+    fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
 
-# for i in range(NB_PATTES):
-#     if i % 2 == 0:  
-#         ax_pairs.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
-# ax_pairs.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
-# ax_pairs.legend(loc='upper right')
+    ax_group1 = axes[0]  
+    ax_group2 = axes[1]  
+    ax_superposition = axes[2]  
+
+    colors_spectre = plt.cm.viridis(np.linspace(0, 1, NB_PATTES))
 
 
-# for i in range(NB_PATTES):
-#     if i % 2 != 0:  
-#         ax_odds.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
-# ax_odds.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
-# ax_odds.legend(loc='upper right')
+    group1_indices = [i for i in range(NB_PATTES) if i % 4 == 0 or i % 4 == 3]
+    group2_indices = [i for i in range(NB_PATTES) if i % 4 == 1 or i % 4 == 2]
 
-# ax_pairs.set_ylabel('Potentiel (neurones pairs)')
-# ax_pairs.set_title('Neurones pairs')
-# ax_odds.set_ylabel('Potentiel (neurones impairs)')
-# ax_odds.set_title('Neurones impairs')
-# axes[-1].set_xlabel('Temps (ms)')
+    
+    for i in group1_indices:
+        ax_group1.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
+    ax_group1.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
+    ax_group1.legend(loc='upper right')
+
+    for i in group2_indices:
+        ax_group2.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
+    ax_group2.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
+    ax_group2.legend(loc='upper right')
+
+    ax_superposition.plot(MAv.t/ms, MAv.v[0], color='blue', label='Neurone 0 Avancer')
+    ax_superposition.plot(MAv.t/ms, MAv.v[1], color='orange', label='Neurone 1 Avancer')
+    ax_superposition.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
+    ax_superposition.legend(loc='upper right')
+
+    ax_group1.set_ylabel('Potentiel')
+    ax_group1.set_title('Neurones sans phase')
+
+    ax_group2.set_ylabel('Potentiel')
+    ax_group2.set_title('Neurones avec phase')
+
+    ax_superposition.set_ylabel('Potentiel')
+    ax_superposition.set_title('Superposition des Neurones 0 et 1')
+
+    axes[-1].set_xlabel('Temps (ms)')
+    fig3.subplots_adjust(hspace=0.4)
 
 
+if TURN !=0 and ACTION == 2:
+    fig3, axes = plt.subplots(4, 1, sharex=True)  
+    fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
 
-##### VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE RECULER  ####            NE PAS SUPPRIMER
+    ax_right = axes[0]  
+    ax_left = axes[1]  
+    ax_without_phase = axes[2]  
+    ax_with_phase = axes[3]  
+
+    colors_spectre = plt.cm.viridis(np.linspace(0, 1, NB_PATTES))
+
+    right_indices = [i for i in range(NB_PATTES) if i % 2 != 0]
+    left_indices = [i for i in range(NB_PATTES) if i % 2 == 0]
+
+    for i in right_indices:
+        ax_right.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
+    ax_right.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
+    ax_right.legend(loc='upper right')
+
+    for i in left_indices:
+        ax_left.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
+    ax_left.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
+    ax_left.legend(loc='upper right')
+
+    without_phase_indices = [i for i in range(NB_PATTES) if i % 4 == 0 or i % 4 == 3]
+
+    for i in without_phase_indices:
+        ax_without_phase.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
+    ax_without_phase.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
+    ax_without_phase.legend(loc='upper right')
+
+    with_phase_indices = [i for i in range(NB_PATTES) if i % 4 == 1 or i % 4 == 2]
+
+    for i in with_phase_indices:
+        ax_with_phase.plot(MAv.t/ms, MAv.v[i], color=colors_spectre[i], label=f'Neurone {i} Avancer')
+    ax_with_phase.axhline(y=seuilAv, ls='--', color='r', label=f'Seuil')
+    ax_with_phase.legend(loc='upper right')
+
+    ax_right.set_ylabel('Potentiel')
+    ax_right.set_title('Neurones des pattes de droite')
+
+    ax_left.set_ylabel('Potentiel')
+    ax_left.set_title('Neurones des pattes de gauche')
+
+    ax_without_phase.set_ylabel('Potentiel')
+    ax_without_phase.set_title('Neurones sans phase')
+
+    ax_with_phase.set_ylabel('Potentiel')
+    ax_with_phase.set_title('Neurones avec phase')
+
+    axes[-1].set_xlabel('Temps (ms)')
+    fig3.subplots_adjust(hspace=0.4)
+
+
+#### VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE RECULER  ####            NE PAS SUPPRIMER
 
 # fig4, axes = plt.subplots(NB_PATTES, 1, sharex=True)
 # for i in range(NB_PATTES):
@@ -743,38 +911,85 @@ for i in range(NB_PATTES):
 
 # fig4.tight_layout()
 
-########################## OU
+######################### OU
+
+# DANS LE CAS AVANCE OU RECULE SANS TOURNER
+
+if TURN ==0 and ACTION == 1:
+
+    fig4, axes = plt.subplots(3, 1, sharex=True)
+    fig4.suptitle('Groupe de Neurones Reculer', fontsize=16)
+
+    ax_group1 = axes[0]  
+    ax_group2 = axes[1]  
+    ax_superposition = axes[2]  
+
+    colors_spectre = plt.cm.viridis(np.linspace(0, 1, NB_PATTES))
+
+    group1_indices = [i for i in range(NB_PATTES) if i % 4 == 0 or i % 4 == 3]
+    group2_indices = [i for i in range(NB_PATTES) if i % 4 == 1 or i % 4 == 2]
+
+    for i in group1_indices:
+        ax_group1.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
+    ax_group1.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
+    ax_group1.legend(loc='upper right')
+
+    for i in group2_indices:
+        ax_group2.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
+    ax_group2.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
+    ax_group2.legend(loc='upper right')
+
+    ax_superposition.plot(MRe.t/ms, MRe.v[0], color='blue', label='Neurone 0 Reculer')
+    ax_superposition.plot(MRe.t/ms, MRe.v[1], color='orange', label='Neurone 1 Reculer')
+    ax_superposition.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
+    ax_superposition.legend(loc='upper right')
+
+    ax_group1.set_ylabel('Potentiel')
+    ax_group1.set_title('Neurones sans phase')
+
+    ax_group2.set_ylabel('Potentiel')
+    ax_group2.set_title('Neurones avec phase')
+
+    ax_superposition.set_ylabel('Potentiel')
+    ax_superposition.set_title('Superposition des Neurones 0 et 1')
+
+    axes[-1].set_xlabel('Temps (ms)')
 
 
-# fig4, axes = plt.subplots(2, 1, sharex=True)
-# fig4.suptitle('Groupe de Neurones Reculer', fontsize=16)
-# ax_pairs = axes[0]  
-# ax_odds = axes[1]   
-# colors_spectre = plt.cm.viridis(np.linspace(0, 1, NB_PATTES))
-# labels_pairs = []
-# labels_odds = []
+# DANS LE CAS AVANCE OU RECULE AVEC TOURNER
+if TURN !=0 and ACTION == 1:
+    fig4, axes = plt.subplots(2, 1, sharex=True)  
+    fig4.suptitle('Groupe de Neurones Reculer', fontsize=16)
 
-# for i in range(NB_PATTES):
-#     if i % 2 == 0:  
-#         ax_pairs.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
-# ax_pairs.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
-# ax_pairs.legend(loc='upper right')
+    ax_group1 = axes[0]  
+    ax_group2 = axes[1]  
+
+    colors_spectre = plt.cm.viridis(np.linspace(0, 1, NB_PATTES))
+
+    group1_indices = [i for i in range(NB_PATTES) if i % 2 == 0]  
+    group2_indices = [i for i in range(NB_PATTES) if i % 2 == 1]  
+
+    for i in group1_indices:
+        ax_group1.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
+    ax_group1.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
+    ax_group1.legend(loc='upper right')
+
+    for i in group2_indices:
+        ax_group2.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
+    ax_group2.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
+    ax_group2.legend(loc='upper right')
+
+    ax_group1.set_ylabel('Potentiel')
+    ax_group1.set_title('Pattes de droite')
+
+    ax_group2.set_ylabel('Potentiel')
+    ax_group2.set_title('Pattes de gauche')
+
+    axes[-1].set_xlabel('Temps (ms)')
+    fig4.subplots_adjust(hspace=0.4)
 
 
-# for i in range(NB_PATTES):
-#     if i % 2 != 0:  
-#         ax_odds.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
-# ax_odds.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
-# ax_odds.legend(loc='upper right')
 
-# ax_pairs.set_ylabel('Potentiel (neurones pairs)')
-# ax_pairs.set_title('Neurones pairs')
-# ax_odds.set_ylabel('Potentiel (neurones impairs)')
-# ax_odds.set_title('Neurones impairs')
-# axes[-1].set_xlabel('Temps (ms)')
-
-
-# Paramètres simples pour un modèle de neurone
 def visualise_connectivity(S):
     Ns = len(S.source)
     Nt = len(S.target)
