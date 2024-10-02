@@ -4,8 +4,8 @@ import math
 
 ############################### 4 CHOIX UTILISATEURS ################################################
 
-TURN =2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
-ACTION = 2#2 = AVANCER, 1 = RECULER
+TURN = 2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
+ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair
 VITESSE = 1 #
 
@@ -75,16 +75,14 @@ def delay_maker2(x1, x2, x3, x4, N):
     list1 = [0] * N
     list2 = [0] * N
 
-    # Fill list1: even indices alternate between 0 and x1, odd indices alternate between x2 and 0
-    for i in range(1, N, 4):  # Odd indices for list1 get x2
+    for i in range(1, N, 4):  
         list1[i] = x2
-    for i in range(2, N, 4):  # Even indices for list1 get x1
+    for i in range(2, N, 4):  
         list1[i] = x1
 
-    # Fill list2: even indices alternate between 0 and x3, odd indices alternate between x4 and 0
-    for i in range(1, N, 4):  # Odd indices for list2 get x4
+    for i in range(1, N, 4):  
         list2[i] = x4
-    for i in range(2, N, 4):  # Even indices for list2 get x3
+    for i in range(2, N, 4):  
         list2[i] = x3
 
     return list1, list2
@@ -158,8 +156,6 @@ t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
 runtime = 72 if ACTION == 2 else 500
 
 
-# print(f"Avancer: t_start_av = {t_start_av}, t_end_av = {t_end_av}")
-# print(f"Reculer: t_start_re = {t_start_re}, t_end_re = {t_end_re}")
 
 delais_av =3 *ms
 delais_re =16.5 *ms
@@ -266,6 +262,8 @@ SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
 SInhib.connect(condition='i==j')  
 
 #Synapses pour aller a droite et a gauche en avancant
+
+#    ########### A CORRIGER
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseAvance_cote_droit.w = '0.05'
@@ -273,35 +271,40 @@ SVitesseAvance_cote_droit.w = '0.05'
 SVitesseAvance_cote_droit.delay = [0,0,0]*ms
 
 
+# EN ATTENTE
+
 # SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 # SVitesseAvance.connect(i=2, j = range(len(GAv)))
 # SVitesseAvance.w = '0.05'
 
 
 
-
+# DONE
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
-SVitesseAvance_cote_gauche.w = '0.05'
-#SVitesseAvance_cote_gauche.delay = [0,4.5,0]* ms#delay_maker(NB_PATTES,0, 0)[:NB_PATTES // 2] * ms#
-SVitesseAvance_cote_droit.delay = [0,0,0]*ms
-
-
-#Synapses pour aller a droite et a gauche en reculant
-SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
-#SVitesseRecul_cote_droit.connect(i=2, j = range(NB_PATTES))
-SVitesseRecul_cote_droit.w = '0.018'
-#SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
-SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-SVitesseRecul.connect(i=2, j = range(len(GRe)))
-SVitesseRecul.w = '0.018'
+SVitesseAvance_cote_gauche.w = [0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3
+SVitesseAvance_cote_gauche.delay = [0,3,0]*ms# 
 
 
 
-SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
-SVitesseRecul_cote_gauche.w = '0.018'
+# RECULER EN TOURNANT A CORRIGER
+
+
+# #Synapses pour aller a droite et a gauche en reculant
+# SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+# SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
+# #SVitesseRecul_cote_droit.connect(i=2, j = range(NB_PATTES))
+# SVitesseRecul_cote_droit.w = '0.018'
+# #SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
+# SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+# SVitesseRecul.connect(i=2, j = range(len(GRe)))
+# SVitesseRecul.w = '0.018'
+
+
+
+# SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+# SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
+# SVitesseRecul_cote_gauche.w = '0.018'
 
 # OBSTACLES
 
@@ -415,20 +418,24 @@ spike_monitor_Obst_devant = SpikeMonitor(GObstacleDevant)
 spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
-Run_time = runtime/2 *ms
-Run_time = t_end_av
+
+
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
 
-#SControlAv.delay = [0,3,3,0,0,3]#delay_maker(NB_PATTES,0,3)* ms
-#SVitesseAvance_cote_droit.delay = [0,0,0]*ms
-SVitesseAvance_cote_gauche.delay = [0,1.5,0]*ms
-SControlAv.delay = [0,3,0.85,0,0,3]*ms
+
+Run_time = runtime *ms
+if TURN ==0:
+    Run_time = runtime/2 *ms
+
+if TURN !=0 and ACTION == 2:
+    Run_time = t_end_av
+
 
 
 run(Run_time)
 
 GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-SControlAv.delay = [0,3,3,0,0,3]*ms
+
 run(Run_time)
 
 # @network_operation(dt=0.1*ms) 
@@ -471,11 +478,18 @@ spike_times_neuron_1_av = spike_monitor_av.spike_trains()[1]
 delays_between_spikes_0_av = diff(spike_times_neuron_0_av)
 delays_between_spikes_1_av = diff(spike_times_neuron_1_av)
 
+spike_times_neuron_2_av = spike_monitor_av.spike_trains()[2]
+spike_times_neuron_3_av = spike_monitor_av.spike_trains()[3]
+delays_between_spikes_2_av  = diff(spike_times_neuron_2_av)
+delays_between_spikes_3_av  = diff(spike_times_neuron_3_av)
+
 # CTRL AV
 spike_times_neuron_0_CtrlVit_AV = spike_monitor_CtrlVit_AV.spike_trains()[0]
 spike_times_neuron_1_CtrlVit_AV = spike_monitor_CtrlVit_AV.spike_trains()[1]
+
 delays_between_spikes_0_CtrlVit_AV  = diff(spike_times_neuron_0_CtrlVit_AV)
 delays_between_spikes_1_CtrlVit_AV  = diff(spike_times_neuron_1_CtrlVit_AV)
+
 
 # CTRL ARR
 
@@ -526,9 +540,14 @@ print(f"Délais entre les spikes pour le neurone 1 : {delays_between_spikes_1_re
 print(f"\n--------------------------------  AVANCER ------------------------------------------------------")
 
 print(f"Temps de spikes pour le neurone 0 (Avancer) : {spike_times_neuron_0_av}")
-print(f"Délais entre les spikes pour le neurone 0 (Avancer) : {delays_between_spikes_0_av}")
-print(f"Temps de spikes pour le neurone 1 (Avancer) : {spike_times_neuron_1_av}")
-print(f"Délais entre les spikes pour le neurone 1 (Avancer) : {delays_between_spikes_1_av}")
+print(f"\nDélais entre les spikes pour le neurone 0 (Avancer) : {delays_between_spikes_0_av}")
+print(f"\nTemps de spikes pour le neurone 1 (Avancer) : {spike_times_neuron_1_av}")
+print(f"\nDélais entre les spikes pour le neurone 1 (Avancer) : {delays_between_spikes_1_av}")
+
+print(f"\nTemps de spikes pour le neurone 2(Avancer) : {spike_times_neuron_2_av}")
+print(f"Délais entre les spikes pour le neurone 2 (Avancer) : {delays_between_spikes_2_av}")
+print(f"\nTemps de spikes pour le neurone 3(Avancer) : {spike_times_neuron_3_av}")
+print(f"Délais entre les spikes pour le neurone 3 (Avancer) : {delays_between_spikes_3_av}")
 
 
 print(f"\n---------------------------------- CTRLVIT_AV -----------------------------------------------------")
