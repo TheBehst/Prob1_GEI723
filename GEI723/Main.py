@@ -416,10 +416,19 @@ spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
 Run_time = runtime/2 *ms
+Run_time = t_end_av
+GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
 
-#GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
+#SControlAv.delay = [0,3,3,0,0,3]#delay_maker(NB_PATTES,0,3)* ms
+#SVitesseAvance_cote_droit.delay = [0,0,0]*ms
+SVitesseAvance_cote_gauche.delay = [0,1.5,0]*ms
+SControlAv.delay = [0,3,0.85,0,0,3]*ms
+
+
 run(Run_time)
-#GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+
+GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+SControlAv.delay = [0,3,3,0,0,3]*ms
 run(Run_time)
 
 # @network_operation(dt=0.1*ms) 
