@@ -4,9 +4,9 @@ import math
 
 ############################### 4 CHOIX UTILISATEURS ################################################
 
-TURN = 2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
-ACTION =2 #2 = AVANCER, 1 = RECULER
-NB_PATTES = 6# doit etre pair et sup a 6
+TURN = 1# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
+ACTION =1 #2 = AVANCER, 1 = RECULER
+NB_PATTES = 8# doit etre pair et sup a 6
 VITESSE = 1 #
 
 PRESCENCE_OBSTACLE = False
@@ -311,25 +311,28 @@ SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0
 
 
 
-# RECULER EN TOURNANT A CORRIGER
+# RECULER EN TOURNANT 
 
 
 # #Synapses pour aller a droite et a gauche en reculant
-# SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-# SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
-# #SVitesseRecul_cote_droit.connect(i=2, j = range(NB_PATTES))
-# SVitesseRecul_cote_droit.w = '0.018'
-# #SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
-# SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-# SVitesseRecul.connect(i=2, j = range(len(GRe)))
-# SVitesseRecul.w = '0.018'
+SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))#i=2?
+SVitesseRecul_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)##'0.018'car on veut delai entre spike de 16.5 sur neurone 3
+#SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
+SVitesseRecul_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 16.5, 0)*ms#[16.5,0,16.5]*ms# car on veut neurone 1 et 3 spike a t=33
 
-
-
+#DONE
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)# '0.018' car on veut delai entre spike de 16.5 sur neurone 2
 SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33
+
+# EN ATTENTE
+
+# SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+# SVitesseRecul.connect(i=2, j = range(len(GRe)))
+# SVitesseRecul.w = '0.018'
+
 
 
 # OBSTACLES
