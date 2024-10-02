@@ -4,7 +4,7 @@ import math
 
 ############################### 4 CHOIX UTILISATEURS ################################################
 
-TURN =0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
+TURN =2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION = 2#2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair
 VITESSE = 1 #
@@ -67,83 +67,6 @@ TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "san
 TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
 
 #################################### DEF ##########################################
-# def calculate_spike_cycle_period_with_spikes(input_spike_periods, input_weights, threshold, tau, v_init=0):
-#      # Calculate the input contributions from each neuron over one spike cycle
-#     input_contributions = [
-#         weight * (1 - np.exp(-period / tau)) 
-#         for weight, period in zip(input_weights, input_spike_periods)
-#     ]
-    
-#     # Sum the contributions from all inputs
-#     total_input_per_cycle = sum(input_contributions)
-
-#     if total_input_per_cycle <= 0:
-#         raise ValueError("Total input is insufficient to reach the threshold.")
-    
-#     # Calculate how many cycles it takes for the target neuron to reach its threshold
-#     cycles_to_threshold = (threshold - v_init) / total_input_per_cycle
-    
-#     # The total spike cycle period is the average of the input spike periods multiplied by the number of cycles
-#     avg_input_period = sum(input_spike_periods) / len(input_spike_periods)
-#     spike_cycle_period = cycles_to_threshold * avg_input_period
-#     # print("cycles_to_threshold:", cycles_to_threshold)
-#     # print("avg_input_period:", avg_input_period)
-
-#     # print("spike_cycle_period:", spike_cycle_period)
-
-#     # spike_cycle_period_rounded = math.floor(spike_cycle_period)
-#     #spike_cycle_period = (spike_cycle_period+0.1)*2
-#     spike_cycle_period = spike_cycle_period+sqrt(33)
-
-#     return spike_cycle_period
-
-
-# def calculate_spike_period_with_I(I, tau, threshold, reset_value, v_init=0):
-
-#     if isinstance(tau, Quantity):
-#         tau = tau.item()  # Extracts the scalar value of the quantity (in base units, e.g., seconds)
-
-#     if I <= threshold:
-#         # If input current is not enough to reach the threshold, the neuron won't spike
-#         return 0
-    
-#     # Calculate the time it takes to reach the threshold
-#     time_to_spike = -tau * np.log((threshold - I) / (v_init - I))
-    
-#     # Calculate the time it takes to reset
-#     time_to_reset = -tau * np.log((reset_value - I) / (v_init - I))
-    
-#     # Total time for one spike cycle (spike + reset)
-#     total_spike_cycle_time = time_to_spike + time_to_reset
-    
-#     return total_spike_cycle_time
-
-# def gestionnaire_delais(SVitesseAvance_w, SControlAv_w, SControlRe_w, SVitesseAvance_cote_gauche_w, SVitesseRecul_cote_droit_w, GVitesseAvance_I,
-#                         GControl_I, GVitesseRecul_I, GControl_tau, GVitesseAvance_tau,  GVitesseRecul_tau, GAv_tau, GRe_tau):
-#     weightsAv = [float(SVitesseAvance_w[0]), float(SControlAv_w[0]),  float(SVitesseAvance_cote_gauche_w[0])]
-#     weightsRe = [float(SVitesseAvance_w[0]), float(SControlRe_w[0]), float(SVitesseRecul_cote_droit_w[0])]
-#     T_spikes_recu_AvDr = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GVitesseAvance_I[0], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
-#     T_spikes_recu_AvG = [float(calculate_spike_period_with_I(GVitesseAvance_I[2], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GVitesseAvance_I[1], GVitesseAvance_tau, SeuilTourner, 0, 0) / ms)]
-#     T_spikes_recu_ReDr = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GVitesseRecul_I[0], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
-#     T_spikes_recu_ReG = [float(calculate_spike_period_with_I(GVitesseRecul_I[2], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GControl_I, GControl_tau, seuilControle, 0, 0) / ms),
-#                     float(calculate_spike_period_with_I(GVitesseRecul_I[1], GVitesseRecul_tau, SeuilTourner, 0, 0) / ms)]
-#     T_spike_avancer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvDr, weightsAv, seuilAv, GAv_tau)
-#     T_spike_avancer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvG, weightsAv, seuilAv, GAv_tau)
-#     # print("T_spikes_recu_AvG:", T_spikes_recu_AvG)
-#     # print("weightsAv:", weightsAv)
-#     # print("seuilAv:", seuilAv)
-#     # print("GAv_tau:", GAv_tau)
-
-#     T_spike_reculer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReDr, weightsRe, seuilRe, GRe_tau)
-#     T_spike_reculer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReG, weightsRe, seuilRe, GRe_tau)
-#     return delay_maker2(T_spike_avancer_droit, T_spike_avancer_gauche, T_spike_reculer_droit, T_spike_reculer_gauche, NB_PATTES)
 
 def delay_maker2(x1, x2, x3, x4, N):
     if N < 6 or N % 2 != 0:
@@ -219,7 +142,7 @@ CURRENTS_VITESSE = [0, 0.2, 0.4]
 Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
 Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
 
-runtime = 72 if ACTION == 2 else 500
+
 #Pour tourner
 CURRENT_TURN_AV = 5
 CURRENT_TURN_RE = 5
@@ -232,6 +155,9 @@ Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Curr
 
 # le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
 t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
+runtime = 72 if ACTION == 2 else 500
+
+
 # print(f"Avancer: t_start_av = {t_start_av}, t_end_av = {t_end_av}")
 # print(f"Reculer: t_start_re = {t_start_re}, t_end_re = {t_end_re}")
 
@@ -326,35 +252,7 @@ SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w ')
 SControlAv.connect(i=0, j=range(len(GAv)))  
 SControlAv.w = '0.14'#6ms
 SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
-SControlAv.active = False
-#SControlAv.delay = [0,0,0,0,0,0]*ms
-#SControlAv.delay = [0,3,0,0,0,3]*ms
-# @network_operation(dt=1*ms)  # Cette fonction est appelée à chaque pas de temps
-# def update_delays():
-#     # Condition pour modifier le délai en fonction du temps
-#     if defaultclock.t >= t_start_av and defaultclock.t < t_end_av:
-#         SControlAv.delay = [0, 3, 0, 0, 0, 3]*ms 
-#     else:
-#         SControlAv.delay = [0, 3, 0, 0, 0, 3]*ms  
-SControlAv_delai_court = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w ')
-SControlAv_delai_court.connect(i=0, j=range(len(GAv)))  
-SControlAv_delai_court.w = '0.14'#6ms
-SControlAv_delai_court.delay = [0,0,0,0,0,0]*ms
-SControlAv_delai_court.active = False 
 
-@network_operation(dt=1*ms)
-def switch_synapses():
-    print("Délai court activé")
-    SControlAv.active = True  # Activer la synapse avec délai normal
-    # SControlAv_delai_court.active = False  # Désactiver la synapse avec délai court
-    # # Activer ou désactiver les synapses selon le temps
-    # if defaultclock.t >= t_start_av and defaultclock.t < t_end_av:
-    #     SControlAv.active = False  # Désactiver la synapse avec délai normal
-    #     SControlAv_delai_court.active = True  # Activer la synapse avec délai court
-    
-        
-
-#SControlAv_delai_court.delay = delay_maker(NB_PATTES,0,3)* ms
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
@@ -453,50 +351,12 @@ SVitesseRecul_cote_gauche.w = '0.018'
 
 
 ########################### NETWORK OPERATIONS ###########################
-@network_operation(dt=0.1*ms) 
-def update_current():
-    if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
-        GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
-        # delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-        #                                     float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-        #SControlAv.delay = 1.5 * ms
-        #SVitesseAvance.delay = 1.5  * ms
-        #SVitesseAvance_cote_droit.delay = [0,0,0]*ms#delay_maker(NB_PATTES,3, 4.5)[:NB_PATTES // 2] * ms#
-        #SVitesseAvance_cote_gauche.delay = [0,0,0]*ms
-        #SControlAv.delay = [0,3,0,0,0,3]*ms#delay_maker(NB_PATTES,0,3)* ms
-        ##SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
-
-        #SControlRe.delay = delais_re * ms
-        #SVitesseRecul.delay = delais_re * ms
-    if GVitesseAvance.t > t_end_av - 0.5*ms:
-        GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-        #SControlAv.delay = 3 * ms
-        #SVitesseAvance.delay = 3  * ms
-        # delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-        #                                     float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-        #SControlAv.delay = delais_av * ms
-        #SVitesseAvance.delay = delais_av * ms
-
-        #SControlRe.delay = delais_re * ms
-        #SVitesseRecul.delay = delais_re * ms
-    if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
-        GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
-
-        #SControlRe.delay = [16.5, 8.25, 16.5,8.25, 16.5, 8.25] * ms
-        #SVitesseRecul_cote_droit.delay = [16.5, 8.25, 16.5]  * ms
-
-    if GVitesseRecul.t == t_end_re -0.5*ms:
-        GRe.v = [0,0,0,0,0,0]
-
-    if GVitesseRecul.t > t_end_re -0.5*ms:
-        GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-        #SControlRe.delay = [30, 16.5, 30,16.5, 30, 16.5] * ms
-        #SVitesseRecul_cote_droit.delay = [30, 16.5, 30]  * ms
-        
 
 
 
 
+
+################################################################################################################################################
 # @network_operation(dt=0.2*ms)
 # def update_obstacle_devant():
 #     if GObstacleDevant.t >= t_start_obstacle_devant and GObstacleDevant.t < t_end_obstacle_devant:
@@ -555,10 +415,32 @@ spike_monitor_Obst_devant = SpikeMonitor(GObstacleDevant)
 spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
-run(runtime*ms)
+Run_time = runtime/2 *ms
 
+#GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
+run(Run_time)
+#GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+run(Run_time)
 
+# @network_operation(dt=0.1*ms) 
+# def update_current():
+#     if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
+#         GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
+       
+#     if GVitesseAvance.t > t_end_av - 0.5*ms:
+#         GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+    
+#     if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
+#         GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
 
+ 
+#     if GVitesseRecul.t == t_end_re -0.5*ms:
+#         GRe.v = [0,0,0,0,0,0]
+
+#     if GVitesseRecul.t > t_end_re -0.5*ms:
+#         GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+
+        
 
 ############################## AFTER RUN ################################################
 # Control direction
