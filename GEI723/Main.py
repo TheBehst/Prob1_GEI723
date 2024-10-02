@@ -4,7 +4,7 @@ import math
 
 ############################### 4 CHOIX UTILISATEURS ################################################
 
-TURN = 2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
+TURN = 1# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
 VITESSE = 1 #
@@ -112,14 +112,25 @@ def definir_temps(TURN, ACTION):
     dephase = 3 * ms if TURN == 1 and ACTION == 2 else 0
     dephase_re = 16.5 * ms if TURN == 1 and ACTION == 1 else 0
     
-    if ACTION == 2 and TURN != 0:  
+    if ACTION == 2 and TURN ==2 :  
         t_start_av = t_start_base_av + dephase
         t_end_av = t_end_base_av + dephase
         t_start_re = 0* ms 
         t_end_re = 0* ms 
-    elif ACTION == 1 and TURN != 0:  
+    elif ACTION == 2 and TURN ==1 :  
+        t_start_av = t_start_base_av + dephase
+        t_end_av = t_end_base_av 
+        t_start_re = 0* ms 
+        t_end_re = 0* ms 
+    elif ACTION == 1 and TURN == 2:  
         t_start_re = t_start_base_re + dephase_re
         t_end_re = t_end_base_re + dephase_re
+        t_start_av = 0* ms 
+        t_end_av = 0* ms 
+
+    elif ACTION == 1 and TURN == 1:  
+        t_start_re = t_start_base_re + dephase_re
+        t_end_re = t_end_base_re 
         t_start_av = 0* ms 
         t_end_av = 0* ms 
     else:
@@ -165,6 +176,11 @@ Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Curr
 
 # le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
 t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
+print("t_start_av:", t_start_av)
+print("t_end_av:", t_end_av)
+print("t_start_re:", t_start_re)
+print("t_end_re:", t_end_re)
+
 runtime = 72 if ACTION == 2 else 500
 
 
@@ -275,29 +291,23 @@ SInhib.connect(condition='i==j')
 
 #Synapses pour aller a droite et a gauche en avancant
 
-#    ########### A CORRIGER
+# DONE
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
-SVitesseAvance_cote_droit.w = '0.05'
-#SVitesseAvance_cote_droit.delay = delay_maker(NB_PATTES,3, 4.5)[:NB_PATTES // 2] * ms#
-#SVitesseAvance_cote_droit.delay = [0,0,0]*ms
+SVitesseAvance_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)# car on veut delai entre spike de 3 sur neurone 3
+SVitesseAvance_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 3, 0)*ms# [3,0,3]*ms  neurone 1 a t=6 
 
+# DONE
+SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
+SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
+SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)#[0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3 sur neurone 2
+SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3)*ms#[0,3,0]*ms# 
 
 # EN ATTENTE
 
 # SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 # SVitesseAvance.connect(i=2, j = range(len(GAv)))
 # SVitesseAvance.w = '0.05'
-
-
-
-# DONE
-SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
-SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)#[0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3
-
-
-SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3)*ms#[0,3,0]*ms# 
 
 
 
