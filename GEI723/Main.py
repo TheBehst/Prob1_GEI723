@@ -4,7 +4,7 @@ import math
 
 ############################### 4 CHOIX UTILISATEURS ################################################
 
-TURN = 1# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
+TURN = 2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
 VITESSE = 1 #
@@ -326,9 +326,11 @@ SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0
 
 
 
-# SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-# SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
-# SVitesseRecul_cote_gauche.w = '0.018'
+SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
+SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
+SVitesseRecul_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)# '0.018' car on veut delai entre spike de 16.5 sur neurone 2
+SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33
+
 
 # OBSTACLES
 
@@ -445,7 +447,7 @@ spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
 
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
-
+GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
 
 Run_time = runtime *ms
 if TURN ==0:
@@ -455,11 +457,14 @@ if TURN !=0 and ACTION == 2:
     Run_time = t_end_av
 
 
+if TURN !=0 and ACTION == 1:
+    Run_time = t_end_re
+
 
 run(Run_time)
 
 GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-
+GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
 run(Run_time)
 
 # @network_operation(dt=0.1*ms) 
@@ -495,6 +500,11 @@ spike_times_neuron_0_re = spike_monitor_re.spike_trains()[0]
 spike_times_neuron_1_re = spike_monitor_re.spike_trains()[1]
 delays_between_spikes_0_re = diff(spike_times_neuron_0_re)
 delays_between_spikes_1_re = diff(spike_times_neuron_1_re)
+
+spike_times_neuron_2_re = spike_monitor_re.spike_trains()[2]
+spike_times_neuron_3_re = spike_monitor_re.spike_trains()[3]
+delays_between_spikes_2_re  = diff(spike_times_neuron_2_re)
+delays_between_spikes_3_re  = diff(spike_times_neuron_3_re)
 
 # avancer
 spike_times_neuron_0_av = spike_monitor_av.spike_trains()[0]
@@ -559,8 +569,13 @@ print(f"\n-------------------------------- RECULER -----------------------------
 
 print(f"Temps de spikes pour le neurone 0 : {spike_times_neuron_0_re}")
 print(f"Délais entre les spikes pour le neurone 0 : {delays_between_spikes_0_re}")
-print(f"Temps de spikes pour le neurone 1 : {spike_times_neuron_1_re}")
+print(f"\nTemps de spikes pour le neurone 1 : {spike_times_neuron_1_re}")
 print(f"Délais entre les spikes pour le neurone 1 : {delays_between_spikes_1_re}")
+
+print(f"\nTemps de spikes pour le neurone 2(Reculer) : {spike_times_neuron_2_re}")
+print(f"Délais entre les spikes pour le neurone 2 (Reculer) : {delays_between_spikes_2_re}")
+print(f"\nTemps de spikes pour le neurone 3(Reculer) : {spike_times_neuron_3_re}")
+print(f"Délais entre les spikes pour le neurone 3 (Reculer) : {delays_between_spikes_3_re}")
 print(f"\n--------------------------------  AVANCER ------------------------------------------------------")
 
 print(f"Temps de spikes pour le neurone 0 (Avancer) : {spike_times_neuron_0_av}")
@@ -724,7 +739,6 @@ fig2.tight_layout()  # Ajuste les limites de la figure
 fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-graphes
 
 
-# VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE AVANCER                 NE PAS SUPPRIMER
 
 # fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
 # for i in range(NB_PATTES):
@@ -892,11 +906,13 @@ if TURN ==0 and ACTION == 1:
 
 # DANS LE CAS AVANCE OU RECULE AVEC TOURNER
 if TURN !=0 and ACTION == 1:
-    fig4, axes = plt.subplots(2, 1, sharex=True)  
+    fig4, axes = plt.subplots(4, 1, sharex=True)  
     fig4.suptitle('Groupe de Neurones Reculer', fontsize=16)
 
     ax_group1 = axes[0]  
-    ax_group2 = axes[1]  
+    ax_group2 = axes[1]
+    ax_without_phase_re = axes[2]  
+    ax_with_phase_re = axes[3]     
 
     colors_spectre = plt.cm.viridis(np.linspace(0, 1, NB_PATTES))
 
@@ -907,17 +923,31 @@ if TURN !=0 and ACTION == 1:
         ax_group1.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
     ax_group1.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
     ax_group1.legend(loc='upper right')
+    ax_group1.set_ylabel('Potentiel')
+    ax_group1.set_title('Pattes de droite')
 
     for i in group2_indices:
         ax_group2.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
     ax_group2.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
     ax_group2.legend(loc='upper right')
-
-    ax_group1.set_ylabel('Potentiel')
-    ax_group1.set_title('Pattes de droite')
-
     ax_group2.set_ylabel('Potentiel')
     ax_group2.set_title('Pattes de gauche')
+
+    without_phase_indices_re = [i for i in range(NB_PATTES) if i % 4 == 0 or i % 4 == 3]
+    for i in without_phase_indices_re:
+        ax_without_phase_re.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
+    ax_without_phase_re.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
+    ax_without_phase_re.legend(loc='upper right')
+    ax_without_phase_re.set_ylabel('Potentiel')
+    ax_without_phase_re.set_title('Neurones sans phase')
+
+    with_phase_indices_re = [i for i in range(NB_PATTES) if i % 4 == 1 or i % 4 == 2]
+    for i in with_phase_indices_re:
+        ax_with_phase_re.plot(MRe.t/ms, MRe.v[i], color=colors_spectre[i], label=f'Neurone {i} Reculer')
+    ax_with_phase_re.axhline(y=seuilRe, ls='--', color='r', label=f'Seuil')
+    ax_with_phase_re.legend(loc='upper right')
+    ax_with_phase_re.set_ylabel('Potentiel')
+    ax_with_phase_re.set_title('Neurones avec phase')
 
     axes[-1].set_xlabel('Temps (ms)')
     fig4.subplots_adjust(hspace=0.4)
