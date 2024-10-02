@@ -63,7 +63,7 @@ if ACTION not in [1, 2]:
     ACTION = 1
 
 Text = "Avancer" if ACTION == 2 else "Reculer"
-TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "tout droit"
+TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "sans tourner"
 TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
 
 #################################### DEF ##########################################
@@ -130,7 +130,7 @@ def gestionnaire_delais(SVitesseAvance_w, SControlAv_w, SControlRe_w, SVitesseAv
     T_spike_avancer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_AvG, weightsAv, seuilAv, GAv_tau)
     T_spike_reculer_droit = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReDr, weightsRe, seuilRe, GRe_tau)
     T_spike_reculer_gauche = calculate_spike_cycle_period_with_spikes(T_spikes_recu_ReG, weightsRe, seuilRe, GRe_tau)
-    return delay_maker2(T_spike_avancer_droit, T_spike_avancer_gauche, T_spike_reculer_droit, T_spike_reculer_gauche, NB_PATTES)
+    return delay_maker2(T_spike_avancer_droit/2, T_spike_avancer_gauche/2, T_spike_reculer_droit, T_spike_reculer_gauche, NB_PATTES)
 
 def delay_maker2(x1, x2, x3, x4, N):
     if N < 6 or N % 2 != 0:
@@ -266,6 +266,8 @@ I : 1
 spike_count : integer
 t_start : second
 t_end : second
+threshold : 1
+reset : 1
 """
 
 
@@ -277,10 +279,25 @@ GControl.I = Current
 
 GAv = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
 GAv.tau = 10 * ms 
+group_1_indices = []
+group_2_indices = []
+
+# Generalize the assignment of thresholds based on neuron indices
+for i in range(NB_PATTES):
+    if (i % 6) in [0, 3, 4]:  # Neurons for Group 1 (0, 3, 4, 7, ...)
+        group_1_indices.append(i)
+    else:  # Neurons for Group 2 (1, 2, 5, 6, ...)
+        group_2_indices.append(i)
+
+# Assign thresholds to the respective groups
+
+GAv.v[group_1_indices] = 0
+GAv.v[group_2_indices] = 0
 
 GRe = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
 GRe.tau = 500 * ms
-
+GRe.v[group_1_indices] = 0
+GRe.v[group_2_indices] = 0
 
 GVitesseAvance = NeuronGroup(3, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')# 2 neurones pour controler les 2 cotes des pattes séparément
 GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
@@ -308,14 +325,12 @@ GObstacleGauche.tau = 0.1 * ms
 
 SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w')
 SControlAv.connect(i=0, j=range(len(GAv)))  
-SControlAv.w = '0.14'#6ms
-#SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
+SControlAv.w = '0.14'
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 SControlRe.connect(i=0, j=range(len(GRe)))  
-SControlRe.w = '0.036'#33ms
-#SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms
+SControlRe.w = '0.036'#33ms 0.003>x>0.002
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
@@ -335,8 +350,6 @@ SVitesseRecul.connect(i=2, j = range(len(GRe)))
 SVitesseRecul.w = '0.018'
 
 
-
-
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseAvance_cote_gauche.w = '0.05'
@@ -344,7 +357,6 @@ SVitesseAvance_cote_gauche.w = '0.05'
 #Synapses pour aller a droite et a gauche en reculant
 SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
-#SVitesseRecul_cote_droit.connect(i=2, j = range(NB_PATTES))
 SVitesseRecul_cote_droit.w = '0.018'
 
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
@@ -382,14 +394,6 @@ SObstaclegauche_GVitesseRecule= Synapses(GObstacleGauche, GVitesseRecul, 'w : 1'
 SObstaclegauche_GVitesseRecule.connect(i=1, j=1)  
 SObstaclegauche_GVitesseRecule.w = '0.011' 
 
-#Gestion des delais
-delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-SControlAv.delay = delais_av * ms
-SVitesseAvance.delay = delais_av * ms
-
-SControlRe.delay = delais_re * ms
-SVitesseRecul.delay = delais_re * ms
 
 ########################### MONITOR ####################################
 
@@ -414,26 +418,26 @@ spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
 ########################### NETWORK OPERATIONS ###########################
-@network_operation(dt=0.5*ms) 
+@network_operation(dt=0.5*ms)
 def update_current():
     if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
         GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
-        delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-        SControlAv.delay = delais_av * ms
-        SVitesseAvance.delay = delais_av * ms
+        # delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+        #                                     float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+        # SControlAv.delay = delais_av * ms
+        # SVitesseAvance.delay = delais_av * ms
+        # SControlRe.delay = delais_re * ms
+        # SVitesseRecul.delay = delais_re * ms
 
-        SControlRe.delay = delais_re * ms
-        SVitesseRecul.delay = delais_re * ms
     if GVitesseAvance.t > t_end_av - 0.5*ms:
         GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-        delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
-                                            float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
-        SControlAv.delay = delais_av * ms
-        SVitesseAvance.delay = delais_av * ms
+        # delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+        #                                     float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+        # SControlAv.delay = delais_av * ms
+        # SVitesseAvance.delay = delais_av * ms
 
-        SControlRe.delay = delais_re * ms
-        SVitesseRecul.delay = delais_re * ms
+        # SControlRe.delay = delais_re * ms
+        # SVitesseRecul.delay = delais_re * ms
     if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
         GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
     if GVitesseRecul.t > t_end_re -0.5*ms:
@@ -697,6 +701,7 @@ for i in range(NB_PATTES):
     ax = axes[i]
     ax.plot(MAv.t/ms, MAv.v[i], color='orange')
     ax.axhline(y=seuilAv, ls='--', color='g')
+    ax.axhline(y=seuilAv/2, ls='--', color='r')
     ax.set_ylabel('Potentiel')
     ax.set_title(f'Neurone {i} Avancer')
 
