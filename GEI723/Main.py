@@ -6,7 +6,7 @@ import math
 
 TURN = 2# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
-NB_PATTES = 6# doit etre pair
+NB_PATTES = 6# doit etre pair et sup a 6
 VITESSE = 1 #
 
 PRESCENCE_OBSTACLE = False
@@ -129,6 +129,18 @@ def definir_temps(TURN, ACTION):
         t_end_av = 0* ms 
 
     return t_start_av, t_end_av, t_start_re, t_end_re
+
+
+def generate_alternative_list_moitie(num_pattes, weight1, weight2):# ex : (8,0.05, 0.06) = # [0.05, 0.06, 0.05, 0.06]
+
+    base_weights = [weight1, weight2]
+
+    weights = base_weights * (num_pattes // 2)  
+    weights = weights[:len(weights) // 2]
+    return weights
+
+
+
 ############################### VALEURS INITS ################################################
 
 
@@ -268,7 +280,7 @@ SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_pos
 SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseAvance_cote_droit.w = '0.05'
 #SVitesseAvance_cote_droit.delay = delay_maker(NB_PATTES,3, 4.5)[:NB_PATTES // 2] * ms#
-SVitesseAvance_cote_droit.delay = [0,0,0]*ms
+#SVitesseAvance_cote_droit.delay = [0,0,0]*ms
 
 
 # EN ATTENTE
@@ -282,8 +294,10 @@ SVitesseAvance_cote_droit.delay = [0,0,0]*ms
 # DONE
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
-SVitesseAvance_cote_gauche.w = [0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3
-SVitesseAvance_cote_gauche.delay = [0,3,0]*ms# 
+SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)#[0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3
+
+
+SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3)*ms#[0,3,0]*ms# 
 
 
 
