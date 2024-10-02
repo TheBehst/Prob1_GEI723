@@ -282,17 +282,17 @@ GAv.tau = 10 * ms
 group_1_indices = []
 group_2_indices = []
 
-# Generalize the assignment of thresholds based on neuron indices
-for i in range(NB_PATTES):
-    if (i % 6) in [0, 3, 4]:  # Neurons for Group 1 (0, 3, 4, 7, ...)
-        group_1_indices.append(i)
-    else:  # Neurons for Group 2 (1, 2, 5, 6, ...)
-        group_2_indices.append(i)
+# # Generalize the assignment of thresholds based on neuron indices
+# for i in range(NB_PATTES):
+#     if (i % 6) in [0, 3, 4]:  # Neurons for Group 1 (0, 3, 4, 7, ...)
+#         group_1_indices.append(i)
+#     else:  # Neurons for Group 2 (1, 2, 5, 6, ...)
+#         group_2_indices.append(i)
 
-# Assign thresholds to the respective groups
+# # Assign thresholds to the respective groups
 
-GAv.v[group_1_indices] = 0
-GAv.v[group_2_indices] = 0
+# GAv.v[group_1_indices] = 0
+# GAv.v[group_2_indices] = 0
 
 GRe = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilRe', reset='v=0', method='euler')
 GRe.tau = 500 * ms
@@ -394,6 +394,13 @@ SObstaclegauche_GVitesseRecule= Synapses(GObstacleGauche, GVitesseRecul, 'w : 1'
 SObstaclegauche_GVitesseRecule.connect(i=1, j=1)  
 SObstaclegauche_GVitesseRecule.w = '0.011' 
 
+# delais_av, delais_re = gestionnaire_delais(SVitesseAvance.w, SControlAv.w, SControlRe.w, SVitesseAvance_cote_gauche.w, SVitesseAvance_cote_droit.w, GVitesseAvance.I, GControl.I, GVitesseRecul.I,
+#                                             float(GControl.tau[0]), float(GVitesseRecul.tau[0]), float(GVitesseRecul.tau[0]), float(GAv.tau[0]), float(GRe.tau[0]))
+#         SControlAv.delay = delais_av * ms
+#         SVitesseAvance.delay = delais_av * ms
+
+#         SControlRe.delay = delais_re * ms
+#         SVitesseRecul.delay = delais_re * ms
 
 ########################### MONITOR ####################################
 
