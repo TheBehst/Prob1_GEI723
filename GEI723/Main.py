@@ -2,12 +2,13 @@ from brian2 import *
 import matplotlib.pyplot as plt
 import math
 
-############################### 4 CHOIX UTILISATEURS ################################################
+############################### CHOIX UTILISATEURS ################################################
 
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
-VITESSE = 3 #
+VITESSE = 1 #3
+TOURNER_EN_ROND = 1#1=true, # on tourne en rond vers gauche en avancant
 
 PRESCENCE_OBSTACLE = False
 
@@ -56,7 +57,9 @@ if ACTION not in [1, 2]:
     ACTION = 1
 
 Text = "Avancer" if ACTION == 2 else "Reculer"
-TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "sans tourner"
+
+TextDirection = "en allant à gauche" if TURN == 1 else "en allant à droite" if TURN == 2 else "en tournant en rond" if TOURNER_EN_ROND== 1 else "sans tourner"
+
 TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
 
 #################################### DEF ##########################################
@@ -140,6 +143,8 @@ def definir_temps(TURN, ACTION):
         t_end_re = 0* ms 
         t_start_av = 0* ms 
         t_end_av = 0* ms 
+    if TOURNER_EN_ROND ==1:
+        t_end_av = t_end_base_av *4
 
     return t_start_av, t_end_av, t_start_re, t_end_re
 
@@ -161,8 +166,8 @@ def generate_alternative_list_moitie(num_pattes, weight1, weight2):# ex : (8,0.0
 # Pour la direction
 LARGE_CURRENT = 2
 SMALL_CURRENT = 1
-#CURRENTS_VITESSE = [0, 0.2, 0.4]
-#Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
+CURRENTS_VITESSE = [0, 0.2, 0.4]
+Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
 Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
 
 
@@ -176,6 +181,8 @@ Current_Turn_Av_Left = CURRENT_TURN_AV if TURN ==  1 and ACTION == 2 else Curren
 Current_Turn_Av_Right = CURRENT_TURN_AV if TURN ==  2  and ACTION == 2 else Current_Turn_default
 Current_Turn_Re_Left = CURRENT_TURN_RE if TURN ==  1 and ACTION == 1 else Current_Turn_default
 Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Current_Turn_default
+Current_Turn_Av_Left = CURRENT_TURN_AV if ACTION == 2 and TOURNER_EN_ROND == 1 else Current_Turn_default
+
 if VITESSE !=1:
     if ACTION ==2: 
         Current_Turn_Av_Left = CURRENT_TURN_AV*np.abs(VITESSE-1)
@@ -475,7 +482,8 @@ elif OBSTACLE[0]==3:
 elif OBSTACLE[0]==1:
     Run_time = t_start_obstacle_devant
 
-
+if TOURNER_EN_ROND==1:
+    Run_time = t_end_av
 #TEMPS PENDANT OBSTACLE
 #prise de decision
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
@@ -483,8 +491,8 @@ GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right]
 print(f'1111111111111111111 RUN time {Run_time}')
 run(Run_time)
 
-GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+GVitesseAvance.I = [Current_Turn_default, Current_Turn_default] #, Current_vitesse
+GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]#, Current_vitesse
 if TURN ==0 and OBSTACLE[0] ==None:
     Run_time = runtime/3 *ms
 elif OBSTACLE[0]==4:
@@ -828,7 +836,7 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 #     ax.set_title(f'Neurone {i} Avancer')
 
 ########### OU
-if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None:
+if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None and TOURNER_EN_ROND==0:
 
     fig3, axes = plt.subplots(3, 1, sharex=True)  
     fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
@@ -872,7 +880,7 @@ if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None:
     fig3.subplots_adjust(hspace=0.4)
 
 
-if (TURN !=0 and ACTION == 2) or OBSTACLE[0]!=None:
+if (TURN !=0 and ACTION == 2) or OBSTACLE[0]!=None or TOURNER_EN_ROND==1:
     fig3, axes = plt.subplots(4, 1, sharex=True)  
     fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
 
