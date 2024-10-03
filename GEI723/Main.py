@@ -10,9 +10,9 @@ NB_PATTES = 6# doit etre pair et sup a 6
 VITESSE =1 # 1 OU 2 POUR LE MOMENT
 TOURNER_EN_ROND = 0#1=true, # on tourne en rond vers gauche en avancant
 
-PRESCENCE_OBSTACLE = False
+PRESCENCE_OBSTACLE = True
 
-position= 1 # 1=avant , 3=droite, 4 = gauche
+position= 2 # 1=avant ,2 = derriere,  3=droite, 4 = gauche
 temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
 temps_action= 144 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
 #ratio_vitesse = 6/
@@ -190,7 +190,7 @@ if VITESSE !=1:
         Current_Turn_Re_Right = CURRENT_TURN_RE*np.abs(VITESSE-1)
 
 # le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
-t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(1, ACTION)
+t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
 print("t_start_av:", t_start_av)
 print("t_end_av:", t_end_av)
 print("t_start_re:", t_start_re)
@@ -214,6 +214,15 @@ if PRESCENCE_OBSTACLE and OBSTACLE[0] == 1:
     t_end_obstacle_devant  = OBSTACLE[2]  
 print(f"\nt_start_obstacle_devant = {t_start_obstacle_devant}")
 print(f"t_end_obstacle_devant = {t_end_obstacle_devant}")
+
+# derriere
+t_start_obstacle_derriere = 0*ms
+t_end_obstacle_derriere  = 0*ms 
+if PRESCENCE_OBSTACLE and OBSTACLE[0] == 2:
+    t_start_obstacle_derriere  = OBSTACLE[1]
+    t_end_obstacle_derriere  = OBSTACLE[2]  
+print(f"\nt_start_obstacle_derriere = {t_start_obstacle_derriere}")
+print(f"t_end_obstacle_derriere = {t_end_obstacle_derriere}")
 
 # a droite
 t_start_obstacle_droite = 0*ms
@@ -260,6 +269,7 @@ GControl = NeuronGroup(1, eqs, threshold='v>seuilControle', reset='v=0', method=
 GControl.tau = 1 * ms
 GControl.I = Current
 
+
 GAv = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilAv', reset='v=0', method='euler')
 GAv.tau = 10 * ms 
 
@@ -278,6 +288,10 @@ GVitesseRecul.tau = 50* ms
 GObstacleDevant = NeuronGroup(1, eqs, threshold='v>=seuilObstacle', reset='v=0', method='euler')
 GObstacleDevant.I = CURRENT_NO_OBSTACLE   
 GObstacleDevant.tau = 1 * ms 
+
+GObstacleDerriere = NeuronGroup(1, eqs, threshold='v>=seuilObstacle', reset='v=0', method='euler')
+GObstacleDerriere.I = CURRENT_NO_OBSTACLE  
+GObstacleDerriere.tau = 0.1 * ms 
 
 GObstacleDroite = NeuronGroup(2, eqs, threshold='v>=seuilObstacle', reset='v=0', method='euler')
 GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_NO_OBSTACLE] 
@@ -322,17 +336,9 @@ SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)#[0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3 sur neurone 2
 SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3/VITESSE)*ms#[0,3,0]*ms# GOOD
 
-# EN ATTENTE
-
-# SVitesseAvance = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
-# SVitesseAvance.connect(i=2, j = range(len(GAv)))
-# SVitesseAvance.w = '0.05'
-
 
 
 # RECULER EN TOURNANT 
-
-
 # #Synapses pour aller a droite et a gauche en reculant
 SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))#i=2?
@@ -346,14 +352,6 @@ SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)# '0.018' car on veut delai entre spike de 16.5 sur neurone 2
 SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5/VITESSE)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33 GOOD
 
-# EN ATTENTE
-
-# SVitesseRecul = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
-# SVitesseRecul.connect(i=2, j = range(len(GRe)))
-# SVitesseRecul.w = '0.018'
-
-
-
 # OBSTACLES
 
 # # DEVANT
@@ -366,6 +364,11 @@ SObstacleDevantControl.w = '0.24'# plus grand 0.235 = 2   on veut 2.2 ms
 # # SObstacleDevant_GVitesseAvance = Synapses(GObstacleDevant, GVitesseAvance, 'w : 1', on_pre='v_post = w')
 # # SObstacleDevant_GVitesseAvance.connect(i=0, j=range(len(GVitesseAvance)))  
 # # SObstacleDevant_GVitesseAvance.w = '0'
+
+# # # DERRIERE
+SObstaclederriere_GVitesseAvance = Synapses(GObstacleDerriere, GAv, 'w : 1', on_pre='v_post += w')
+SObstaclederriere_GVitesseAvance.connect(i=0, j=range(len(GAv)))  
+SObstaclederriere_GVitesseAvance.w = '1' 
 
 # # A DROITE
 
@@ -399,8 +402,6 @@ SObstaclegauche_GVitesseRecule.w = '0.011'
 #         if GObstacleDroite.t >= t_end_obstacle_droite:
 #             GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
-
-
 ########################### MONITOR ####################################
 
 MControl = StateMonitor(GControl, 'v', record=True)
@@ -433,7 +434,6 @@ if TURN ==0 and OBSTACLE[0] ==None:
 if TURN !=0 and ACTION == 2:
     Run_time = t_end_av
 
-
 if TURN !=0 and ACTION == 1:
     Run_time = t_end_re
 
@@ -444,11 +444,12 @@ elif OBSTACLE[0]==3:
     Run_time = t_start_obstacle_droite
 elif OBSTACLE[0]==1:
     Run_time = t_start_obstacle_devant
+elif OBSTACLE[0]==2:
+    Run_time = t_start_obstacle_derriere
 
 if TOURNER_EN_ROND==1:
     Run_time = t_end_av
 
-#TEMPS PENDANT OBSTACLE
 #ajustement de vitesse
 
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
@@ -463,28 +464,29 @@ if VITESSE ==1:
     GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
     if TURN ==0 and OBSTACLE[0] ==None:
         Run_time = runtime/3 *ms
-    elif OBSTACLE[0]==4:
+    elif OBSTACLE[0]==4: #obstacle gauche
         Run_time = t_end_obstacle_gauche - t_start_obstacle_gauche
         if ACTION==2:
             GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
         elif ACTION == 1:
             GObstacleGauche.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
-    elif OBSTACLE[0]==3:
+    elif OBSTACLE[0]==3: #obstacle droit
         Run_time = t_end_obstacle_droite - t_start_obstacle_droite
-    elif OBSTACLE[0]==1:
+    elif OBSTACLE[0]==1: #obstacle devant
         Run_time = t_end_obstacle_devant - t_start_obstacle_devant
-
+        SControlRe.delay = delay_maker(NB_PATTES,33,0)* ms #[0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
+        GObstacleDevant.I = CURRENT_OBSTACLE
+    elif OBSTACLE[0]==2: #obstacle derriere
+        Run_time = t_end_obstacle_derriere - t_start_obstacle_derriere
+        GObstacleDerriere.I = CURRENT_OBSTACLE
     if OBSTACLE[0] == 3:
         if ACTION==2:
             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
         elif ACTION == 1:
             GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
     
-    if OBSTACLE[0] == 1:
-        Run_time = t_end_obstacle_devant
 
-        SControlRe.delay = delay_maker(NB_PATTES,33,0)* ms #[0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
-        GObstacleDevant.I = CURRENT_OBSTACLE
+        
 
 
 
@@ -508,7 +510,8 @@ if OBSTACLE[0] == 3:
     GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 if OBSTACLE[0] == 1:
     GObstacleDevant.I = CURRENT_NO_OBSTACLE
-
+if OBSTACLE[0] == 2:
+    GObstacleDerriere.I = CURRENT_NO_OBSTACLE
 if OBSTACLE[0]==4:
     GObstacleGauche.I = [CURRENT_NO_OBSTACLE , CURRENT_NO_OBSTACLE]
 
@@ -801,7 +804,7 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None and TOURNER_EN_ROND==0:
 
     fig3, axes = plt.subplots(3, 1, sharex=True)  
-    fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
+    fig3.suptitle(f'Groupe de Neurones Avancer, vitesse = {VITESSE}', fontsize=16)
 
     ax_group1 = axes[0]  
     ax_group2 = axes[1]  
