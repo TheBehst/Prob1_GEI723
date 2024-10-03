@@ -13,7 +13,7 @@ PRESCENCE_OBSTACLE = True
 
 position= 3# 1=avant , 3=droite, 4 = gauche
 temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69
-temps_action= 48 *ms #temps pour gerer l obstacle  clem:135
+temps_action= 132 *ms #temps pour gerer l obstacle  clem:135
 
 
 
@@ -208,6 +208,8 @@ t_end_obstacle_devant  = 0*ms
 if PRESCENCE_OBSTACLE and OBSTACLE[0] == 1:
     t_start_obstacle_devant  = OBSTACLE[1]
     t_end_obstacle_devant  = OBSTACLE[2]  
+print(f"\nt_start_obstacle_devant = {t_start_obstacle_devant}")
+print(f"t_end_obstacle_devant = {t_end_obstacle_devant}")
 
 # a droite
 t_start_obstacle_droite = 0*ms
@@ -216,6 +218,8 @@ if PRESCENCE_OBSTACLE and OBSTACLE[0] == 3:
     t_start_obstacle_droite = OBSTACLE[1]
     t_end_obstacle_droite  = OBSTACLE[2]  
 
+print(f"\nt_start_obstacle_droite = {t_start_obstacle_droite}")
+print(f"t_end_obstacle_droite = {t_end_obstacle_droite}")
 
 # a gauche
 
@@ -225,7 +229,7 @@ if PRESCENCE_OBSTACLE and OBSTACLE[0] == 4:
     t_start_obstacle_gauche = OBSTACLE[1]
     t_end_obstacle_gauche  = OBSTACLE[2]  
 
-print(f"t_start_obstacle_gauche = {t_start_obstacle_gauche}")
+print(f"\nt_start_obstacle_gauche = {t_start_obstacle_gauche}")
 print(f"t_end_obstacle_gauche = {t_end_obstacle_gauche}")
 
 start_scope()
@@ -349,10 +353,10 @@ SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0,
 # OBSTACLES
 
 # # DEVANT
-# #SI il y a un obstacle devant : GControl passe de  "avance " à "recule"  
-# SObstacleDevantControl = Synapses(GObstacleDevant, GControl, 'w : 1', on_pre='v_post -= w')
-# SObstacleDevantControl.connect(i=0, j=0)  
-# SObstacleDevantControl.w = '0.235'
+#SI il y a un obstacle devant : GControl passe de  "avance " à "recule"  
+SObstacleDevantControl = Synapses(GObstacleDevant, GControl, 'w : 1', on_pre='v_post -= w')
+SObstacleDevantControl.connect(i=0, j=0)  
+SObstacleDevantControl.w = '0.24'# plus grand 0.235 = 2   on veut 2.2 ms
 
 # # SI il y a un obstacle devant : on stop les actions de tourner 
 # # SObstacleDevant_GVitesseAvance = Synapses(GObstacleDevant, GVitesseAvance, 'w : 1', on_pre='v_post = w')
@@ -498,7 +502,6 @@ GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
 # MObstacleGauche = StateMonitor(GObstacleGauche, 'v', record=True)
 
 
-GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
 Run_time = runtime *ms
 if TURN ==0 and OBSTACLE[0] ==None:
@@ -514,9 +517,12 @@ if TURN !=0 and ACTION == 1:
 if OBSTACLE[0]==4:
     Run_time = t_start_obstacle_gauche
 elif OBSTACLE[0]==3:
+    GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
     Run_time = t_start_obstacle_droite
 elif OBSTACLE[0]==1:
     Run_time = t_start_obstacle_devant
+    #SControlRe.delay = [0,16.5,16.5,0,0,16.5]* ms #delay_maker(NB_PATTES,0,0)* ms 
+
 
 #TEMPS PENDANT OBSTACLE
 
@@ -531,11 +537,17 @@ elif OBSTACLE[0]==3:
     Run_time = t_end_obstacle_droite - t_start_obstacle_droite
 elif OBSTACLE[0]==1:
     Run_time = t_end_obstacle_devant - t_start_obstacle_devant
-if PRESCENCE_OBSTACLE:
+
+if OBSTACLE[0] == 3:
     if ACTION==2:
         GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
     elif ACTION == 1:
         GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
+
+if OBSTACLE[0] == 1:
+    SControlRe.delay = [0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
+    GObstacleDevant.I = CURRENT_OBSTACLE
+
 
 
 GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
@@ -556,7 +568,11 @@ if OBSTACLE[0] !=None:
 if TURN !=0 :
     Run_time = 0 *ms
 
-GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+if OBSTACLE[0] == 3:
+    GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+if OBSTACLE[0] == 1:
+    GObstacleDevant.I = CURRENT_NO_OBSTACLE
+
 print(f'333333333 RUN time {Run_time}')
 
 run(Run_time)
@@ -718,7 +734,7 @@ if TURN !=0 or OBSTACLE[0]!= None:
 
 fig1, axes = plt.subplots(nbfig , 1, sharex=True)
 if OBSTACLE[1] != None:
-    fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
+    fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
     fig1.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
 
@@ -760,7 +776,7 @@ ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
 ax.set_title('Neurone 0 Reculer (PATTES DE GAUCHE)')
 
-if ACTION ==2 and TURN !=0:
+if (ACTION ==2 and TURN !=0) or (OBSTACLE[0]!= 1 and OBSTACLE[0]!= None) :
     ax = axes[i+2]
     ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[1], color='blue')
     ax.axhline(y=SeuilTourner, ls='--', color='g')
@@ -768,7 +784,7 @@ if ACTION ==2 and TURN !=0:
     ax.set_xlabel('Temps (ms)')
     ax.set_title('Neurone 1 du controle de vitesse en avancant')
 
-if ACTION ==1 and TURN !=0:
+if (ACTION ==1 and TURN !=0) :
     ax = axes[i+2]
     ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[1], color='grey')
     ax.axhline(y=SeuilTourner, ls='--', color='g')
@@ -785,7 +801,7 @@ i=0
 fig2, axes = plt.subplots(nbfig, 1, sharex=True)
 
 if OBSTACLE[1] != None:
-    fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} a {OBSTACLE[2]}', fontsize=16)
+    fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
     fig2.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
 
@@ -810,7 +826,7 @@ ax.axhline(y=seuilRe, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
 ax.set_title('Neurone 1 Reculer (PATTES DE DROITE)')
-if ( ACTION ==2 and TURN !=0 ) or OBSTACLE[0]!= None:
+if ( ACTION ==2 and TURN !=0 ) or (OBSTACLE[0]!= 1 and OBSTACLE[0]!= None):
 
     ax = axes[i+2]
     ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[0], color='blue')
@@ -818,7 +834,7 @@ if ( ACTION ==2 and TURN !=0 ) or OBSTACLE[0]!= None:
     ax.set_ylabel('Potentiel')
     ax.set_xlabel('Temps (ms)')
     ax.set_title('Neurone 0 du controle de vitesse en avancant')
-if ACTION ==1 and TURN !=0:
+if (ACTION ==1 and TURN !=0) :
 
     ax = axes[i+2]
     ax.plot(MVitesseRecul.t/ms, MVitesseRecul.v[0], color='grey')
@@ -999,7 +1015,7 @@ if TURN ==0 and ACTION == 1:
 
 
 # DANS LE CAS AVANCE OU RECULE AVEC TOURNER
-if TURN !=0 and ACTION == 1:
+if (TURN !=0 and ACTION == 1) or OBSTACLE[0]==1:
     fig4, axes = plt.subplots(4, 1, sharex=True)  
     fig4.suptitle('Groupe de Neurones Reculer', fontsize=16)
 
