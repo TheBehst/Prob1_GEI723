@@ -526,10 +526,11 @@ elif OBSTACLE[0]==3:
     Run_time = t_end_obstacle_droite
 elif OBSTACLE[0]==1:
     Run_time = t_end_obstacle_devant
-if ACTION==2:
-    GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
-elif ACTION == 1:
-    GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
+if PRESCENCE_OBSTACLE:
+    if ACTION==2:
+        GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+    elif ACTION == 1:
+        GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
 
 
 GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
