@@ -5,15 +5,15 @@ import math
 ############################### 4 CHOIX UTILISATEURS ################################################
 
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
-ACTION =2 #2 = AVANCER, 1 = RECULER
+ACTION =1 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 8# doit etre pair et sup a 6
 VITESSE = 1 #
 
 PRESCENCE_OBSTACLE = True
 
-position= 3 # 1=avant , 3=droite, 4 = gauche
-temps_apparition= 66 *ms # : temps d apparition de l obstacle  clem:69
-temps_action= 198 *ms #temps pour gerer l obstacle  clem:135
+position= 4 # 1=avant , 3=droite, 4 = gauche
+temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
+temps_action= 48 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
 
 
 
@@ -520,17 +520,24 @@ elif OBSTACLE[0]==1:
 
 #TEMPS PENDANT OBSTACLE
 run(Run_time)
+
+
 if OBSTACLE[0]==4:
     Run_time = t_end_obstacle_gauche
+    if ACTION==2:
+        GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+    elif ACTION == 1:
+        GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
 elif OBSTACLE[0]==3:
     Run_time = t_end_obstacle_droite
-elif OBSTACLE[0]==1:
-    Run_time = t_end_obstacle_devant
-if PRESCENCE_OBSTACLE:
     if ACTION==2:
         GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
     elif ACTION == 1:
         GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
+elif OBSTACLE[0]==1:
+    Run_time = t_end_obstacle_devant
+
+    
 
 
 GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
@@ -544,7 +551,7 @@ run(Run_time)
 
 
 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-run(100*ms)
+run(24*ms)
 
 # @network_operation(dt=0.1*ms) 
 # def update_current():
