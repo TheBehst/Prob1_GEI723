@@ -4,16 +4,19 @@ import math
 
 ############################### 4 CHOIX UTILISATEURS ################################################
 
-TURN = 1# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
-ACTION =1 #2 = AVANCER, 1 = RECULER
+TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
+ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 8# doit etre pair et sup a 6
 VITESSE = 1 #
 
-PRESCENCE_OBSTACLE = False
+PRESCENCE_OBSTACLE = True
 
 position= 3 # 1=avant , 3=droite, 4 = gauche
-temps_apparition= 69 *ms # : temps d apparition de l obstacle
-temps_action= 135 *ms #temps pour gerer l obstacle
+temps_apparition= 66 *ms # : temps d apparition de l obstacle  clem:69
+temps_action= 198 *ms #temps pour gerer l obstacle  clem:135
+if ACTION==1:
+    temps_apparition= 66 *ms # : temps d apparition de l obstacle  clem:69
+    temps_action= 198 *ms
 
 # REGLES TEMPS D APPARITION et TEMPS ACTION
 # obstacle devant : multiple de 6 , NB il y aura tj un pb sur le 1er spike du neurone 1 reculer, voir Note 3
@@ -87,8 +90,6 @@ def delay_maker2(x1, x2, x3, x4, N):
 
     return list1, list2
 
-
-
 def delay_maker(N, start, delay):
     result = []
     for i in range(N):
@@ -97,6 +98,17 @@ def delay_maker(N, start, delay):
         else:  
             result.append(start + delay)
     return result
+
+def delay_maker10(x1, x2, x3, x4, N):
+    if N % 2 != 0:
+        raise ValueError("N must be an even number.")
+    
+    list1 = [0, x1] * (N // 2)
+    list2 = [x2, 0] * (N // 2)
+    list3 = [0, x3] * (N // 2)
+    list4 = [x4, 0] * (N // 2)
+    
+    return list1, list2, list3, list4
 
 def odd_numbers(N):
     return [i for i in range(1, N+1, 2)]
@@ -175,7 +187,7 @@ Current_Turn_Re_Left = CURRENT_TURN_RE if TURN ==  1 and ACTION == 1 else Curren
 Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Current_Turn_default
 
 # le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
-t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
+t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(1, ACTION)
 print("t_start_av:", t_start_av)
 print("t_end_av:", t_end_av)
 print("t_start_re:", t_start_re)
@@ -275,14 +287,14 @@ GObstacleGauche.tau = 0.1 * ms
 SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w ')
 SControlAv.connect(i=0, j=range(len(GAv)))  
 SControlAv.w = '0.14'#6ms
-SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
+SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms 
 
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 SControlRe.connect(i=0, j=range(len(GRe)))  
 SControlRe.w = '0.036'#33ms
-SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms
+SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms 
 #SControlRe.delay = [0, 16.5,0,16.5, 0, 16.5] * ms
 
 # Synapses GAv -> GRe pour inhiber
@@ -295,13 +307,13 @@ SInhib.connect(condition='i==j')
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseAvance_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)# car on veut delai entre spike de 3 sur neurone 3
-SVitesseAvance_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 3, 0)*ms# [3,0,3]*ms  neurone 1 a t=6 
+SVitesseAvance_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 3, 0)*ms# [3,0,3]*ms  neurone 1 a t=6 GOOD
 
 # DONE
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)#[0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3 sur neurone 2
-SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3)*ms#[0,3,0]*ms# 
+SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3)*ms#[0,3,0]*ms# GOOD
 
 # EN ATTENTE
 
@@ -319,13 +331,13 @@ SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post 
 SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))#i=2?
 SVitesseRecul_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)##'0.018'car on veut delai entre spike de 16.5 sur neurone 3
 #SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
-SVitesseRecul_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 16.5, 0)*ms#[16.5,0,16.5]*ms# car on veut neurone 1 et 3 spike a t=33
+SVitesseRecul_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 16.5, 0)*ms#[16.5,0,16.5]*ms# car on veut neurone 1 et 3 spike a t=33 GOOD
 
 #DONE
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)# '0.018' car on veut delai entre spike de 16.5 sur neurone 2
-SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33
+SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33 GOOD
 
 # EN ATTENTE
 
@@ -349,13 +361,14 @@ SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0,
 # # SObstacleDevant_GVitesseAvance.w = '0'
 
 # # A DROITE
-# SObstacledroite_GVitesseAvance = Synapses(GObstacleDroite, GVitesseAvance, 'w : 1', on_pre='v_post += w')
-# SObstacledroite_GVitesseAvance.connect(i=0, j=0)  
-# SObstacledroite_GVitesseAvance.w = '0.10' 
 
-# SObstacledroite_GVitesseRecule= Synapses(GObstacleDroite, GVitesseRecul, 'w : 1', on_pre='v_post += w')
-# SObstacledroite_GVitesseRecule.connect(i=1, j=0)  
-# SObstacledroite_GVitesseRecule.w = '0.011' 
+SObstacledroite_GVitesseAvance = Synapses(GObstacleDroite, GVitesseAvance, 'w : 1', on_pre='v_post += w')
+SObstacledroite_GVitesseAvance.connect(i=0, j=0)
+SObstacledroite_GVitesseAvance.w = '0.10'
+
+SObstacledroite_GVitesseRecule= Synapses(GObstacleDroite, GVitesseRecul, 'w : 1', on_pre='v_post += w')
+SObstacledroite_GVitesseRecule.connect(i=1, j=0)  
+SObstacledroite_GVitesseRecule.w = '0.011' 
 
 
 # # A GAUCHE
@@ -447,10 +460,46 @@ spike_monitor_Obst_devant = SpikeMonitor(GObstacleDevant)
 spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
-
-
+#prise de decision
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
 GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
+
+
+
+#TODO BEHROUZ
+# run(100*ms)
+
+# spike_times_neuron_0_re = spike_monitor_re.spike_trains()[0]
+# spike_times_neuron_1_re = spike_monitor_re.spike_trains()[1]
+# delays_between_spikes_0_re = np.mean(diff(spike_times_neuron_0_re))
+# delays_between_spikes_1_re = np.mean(diff(spike_times_neuron_1_re))
+
+# spike_times_neuron_0_av = spike_monitor_av.spike_trains()[0]
+# spike_times_neuron_1_av = spike_monitor_av.spike_trains()[1]
+# delays_between_spikes_0_av = np.mean(diff(spike_times_neuron_0_av))
+# delays_between_spikes_1_av = np.mean(diff(spike_times_neuron_1_av))
+    
+# delays_av2, delays_re2 = delay_maker2(delays_between_spikes_0_av/2, delays_between_spikes_1_av/2, delays_between_spikes_0_re/2, delays_between_spikes_1_re/2, NB_PATTES)
+# delays_av_g, delays_av_d, delays_re_g, delays_re_d = delay_maker1(delays_between_spikes_0_av/2, delays_between_spikes_1_av/2, delays_between_spikes_0_re/2, delays_between_spikes_1_re/2, NB_PATTES//2)
+# # delays_av_g = generate_alternative_list_moitie(NB_PATTES, delays_between_spikes_0_av/2,0)
+# SControlAv.delay = np.array(delays_av2)*ms
+# SControlRe.delay = np.array(delays_re2)*ms
+# SVitesseAvance_cote_droit.delay = np.array(delays_av_d)*ms
+# SVitesseAvance_cote_gauche.delay = np.array(delays_av_g)*ms
+# SVitesseRecul_cote_droit.delay = np.array(delays_re_d)*ms
+# SVitesseRecul_cote_gauche.delay = np.array(delays_re_g)*ms
+
+
+# MAv = StateMonitor(GAv, 'v', record=True)
+# MRe = StateMonitor(GRe, 'v', record=True)
+# MVitesseAvance = StateMonitor(GVitesseAvance, 'v', record=True)
+# MVitesseRecul = StateMonitor(GVitesseRecul, 'v', record=True)
+# MObstacleDevant = StateMonitor(GObstacleDevant, 'v', record=True)
+# MObstacleDroite = StateMonitor(GObstacleDroite, 'v', record=True)
+# MObstacleGauche = StateMonitor(GObstacleGauche, 'v', record=True)
+
+
+GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
 Run_time = runtime *ms
 if TURN ==0:
@@ -463,12 +512,33 @@ if TURN !=0 and ACTION == 2:
 if TURN !=0 and ACTION == 1:
     Run_time = t_end_re
 
+if OBSTACLE[0]==4:
+    Run_time = t_start_obstacle_gauche
+elif OBSTACLE[0]==3:
+    Run_time = t_start_obstacle_droite
+elif OBSTACLE[0]==1:
+    Run_time = t_start_obstacle_devant
 
+#TEMPS PENDANT OBSTACLE
 run(Run_time)
+if ACTION==2:
+    GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+elif ACTION == 1:
+    GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
+
 
 GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
 GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-run(Run_time)
+
+#             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+
+run(t_end_obstacle_droite)
+
+#                 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+
+
+GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+run(100*ms)
 
 # @network_operation(dt=0.1*ms) 
 # def update_current():
