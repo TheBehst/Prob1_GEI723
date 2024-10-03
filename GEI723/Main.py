@@ -7,7 +7,7 @@ import math
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
-VITESSE = 3 #3
+VITESSE =1 # 1 OU 2 POUR LE MOMENT
 TOURNER_EN_ROND = 0#1=true, # on tourne en rond vers gauche en avancant
 
 PRESCENCE_OBSTACLE = False
@@ -15,7 +15,7 @@ PRESCENCE_OBSTACLE = False
 position= 1 # 1=avant , 3=droite, 4 = gauche
 temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
 temps_action= 144 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
-
+#ratio_vitesse = 6/
 
 
 # REGLES TEMPS D APPARITION et TEMPS ACTION
@@ -166,8 +166,6 @@ def generate_alternative_list_moitie(num_pattes, weight1, weight2):# ex : (8,0.0
 # Pour la direction
 LARGE_CURRENT = 2
 SMALL_CURRENT = 1
-CURRENTS_VITESSE = [0, 0.2, 0.4]
-Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
 Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
 
 
