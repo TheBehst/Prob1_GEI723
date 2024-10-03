@@ -6,14 +6,14 @@ import math
 
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
-NB_PATTES = 8# doit etre pair et sup a 6
+NB_PATTES = 6# doit etre pair et sup a 6
 VITESSE = 1 #
 
 PRESCENCE_OBSTACLE = True
 
-position= 3 # 1=avant , 3=droite, 4 = gauche
-temps_apparition= 66 *ms # : temps d apparition de l obstacle  clem:69
-temps_action= 198 *ms #temps pour gerer l obstacle  clem:135
+position= 3# 1=avant , 3=droite, 4 = gauche
+temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69
+temps_action= 48 *ms #temps pour gerer l obstacle  clem:135
 
 
 
@@ -501,8 +501,8 @@ GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
 Run_time = runtime *ms
-if TURN ==0:
-    Run_time = runtime/2 *ms
+if TURN ==0 and OBSTACLE[0] ==None:
+    Run_time = runtime/3 *ms
 
 if TURN !=0 and ACTION == 2:
     Run_time = t_end_av
@@ -519,13 +519,18 @@ elif OBSTACLE[0]==1:
     Run_time = t_start_obstacle_devant
 
 #TEMPS PENDANT OBSTACLE
+
+print(f'1111111111111111111 RUN time {Run_time}')
 run(Run_time)
-if OBSTACLE[0]==4:
+
+if TURN ==0 and OBSTACLE[0] ==None:
+    Run_time = runtime/3 *ms
+elif OBSTACLE[0]==4:
     Run_time = t_end_obstacle_gauche
 elif OBSTACLE[0]==3:
-    Run_time = t_end_obstacle_droite
+    Run_time = t_end_obstacle_droite - t_start_obstacle_droite
 elif OBSTACLE[0]==1:
-    Run_time = t_end_obstacle_devant
+    Run_time = t_end_obstacle_devant - t_start_obstacle_devant
 if PRESCENCE_OBSTACLE:
     if ACTION==2:
         GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
@@ -537,14 +542,24 @@ GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
 GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
 
 #             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+print(f'22222222222222222 RUN time {Run_time}')
 
 run(Run_time)
 
 #                 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
+if TURN ==0 :
+    Run_time = runtime/3 *ms
 
+if OBSTACLE[0] !=None:
+    Run_time = 48 *ms
+
+if TURN !=0 :
+    Run_time = 0 *ms
 
 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
-run(100*ms)
+print(f'333333333 RUN time {Run_time}')
+
+run(Run_time)
 
 # @network_operation(dt=0.1*ms) 
 # def update_current():
@@ -698,7 +713,7 @@ print(f"\n---------------------------------- CTRLVIT_Re ------------------------
 # Visualiser les résultats
 nbfig = 2
 i=0
-if TURN !=0:
+if TURN !=0 or OBSTACLE[0]!= None:
     nbfig = 3
 
 fig1, axes = plt.subplots(nbfig , 1, sharex=True)
@@ -795,7 +810,7 @@ ax.axhline(y=seuilRe, ls='--', color='g')
 ax.set_ylabel('Potentiel')
 ax.set_xlabel('Temps (ms)')
 ax.set_title('Neurone 1 Reculer (PATTES DE DROITE)')
-if ACTION ==2 and TURN !=0:
+if ( ACTION ==2 and TURN !=0 ) or OBSTACLE[0]!= None:
 
     ax = axes[i+2]
     ax.plot(MVitesseAvance.t/ms, MVitesseAvance.v[0], color='blue')
