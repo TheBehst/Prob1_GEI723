@@ -2,24 +2,19 @@ from brian2 import *
 import matplotlib.pyplot as plt
 import math
 
-############################### CHOIX UTILISATEURS ################################################
+############################### 4 CHOIX UTILISATEURS ################################################
 
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
-TOURNER_EN_ROND = 0#1=true, # on tourne en rond en avancant
-VITESSE = 1 #
+VITESSE = 3 #
 
-PRESCENCE_OBSTACLE =False
+PRESCENCE_OBSTACLE = False
 
-position= 3 # 1=avant , 3=droite, 4 = gauche
+position= 1 # 1=avant , 3=droite, 4 = gauche
 temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
 temps_action= 144 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
 
-
-OBSTACLE = [None, None, None]
-if PRESCENCE_OBSTACLE:
-    OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]#position doit etre coherent avec action
 
 
 # REGLES TEMPS D APPARITION et TEMPS ACTION
@@ -31,6 +26,12 @@ if PRESCENCE_OBSTACLE:
 # obstacle heurte a gauche en avancant: multiple de 6 
 # obstacle heurte a gauche en reculant: multiple de 33 
 
+
+
+
+OBSTACLE = [None, None, None]
+if PRESCENCE_OBSTACLE:
+    OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]#position doit etre coherent avec action
 
 # Notes : 
 
@@ -55,7 +56,7 @@ if ACTION not in [1, 2]:
     ACTION = 1
 
 Text = "Avancer" if ACTION == 2 else "Reculer"
-TextDirection = "en allant à gauche" if TURN == 1 else "en allant à droite" if TURN == 2 else "en tournant en rond" if TOURNER_EN_ROND== 1 else "sans tourner"
+TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "sans tourner"
 TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
 
 #################################### DEF ##########################################
@@ -109,7 +110,6 @@ def definir_temps(TURN, ACTION):
     t_end_base_av = 36* ms 
     t_start_base_re = 0* ms 
     t_end_base_re = 198* ms 
-
     
     dephase = 3 * ms if TURN == 1 and ACTION == 2 else 0
     dephase_re = 16.5 * ms if TURN == 1 and ACTION == 1 else 0
@@ -135,17 +135,12 @@ def definir_temps(TURN, ACTION):
         t_end_re = t_end_base_re 
         t_start_av = 0* ms 
         t_end_av = 0* ms 
-
-         
     else:
         t_start_re = 0* ms 
         t_end_re = 0* ms 
         t_start_av = 0* ms 
         t_end_av = 0* ms 
 
-    if TOURNER_EN_ROND ==1:
-        t_end_av = t_end_base_av *4
-    
     return t_start_av, t_end_av, t_start_re, t_end_re
 
 
@@ -166,8 +161,8 @@ def generate_alternative_list_moitie(num_pattes, weight1, weight2):# ex : (8,0.0
 # Pour la direction
 LARGE_CURRENT = 2
 SMALL_CURRENT = 1
-CURRENTS_VITESSE = [0, 0.2, 0.4]
-Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
+#CURRENTS_VITESSE = [0, 0.2, 0.4]
+#Current_vitesse = CURRENTS_VITESSE[VITESSE-1]
 Current = LARGE_CURRENT if ACTION == 2 else SMALL_CURRENT
 
 
@@ -176,12 +171,18 @@ CURRENT_TURN_AV = 5
 CURRENT_TURN_RE = 5
 Current_Turn_default = 0
 
+
 Current_Turn_Av_Left = CURRENT_TURN_AV if TURN ==  1 and ACTION == 2 else Current_Turn_default
 Current_Turn_Av_Right = CURRENT_TURN_AV if TURN ==  2  and ACTION == 2 else Current_Turn_default
 Current_Turn_Re_Left = CURRENT_TURN_RE if TURN ==  1 and ACTION == 1 else Current_Turn_default
 Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Current_Turn_default
-
-Current_Turn_Av_Left = CURRENT_TURN_AV if ACTION == 2 and TOURNER_EN_ROND == 1 else Current_Turn_default
+if VITESSE !=1:
+    if ACTION ==2: 
+        Current_Turn_Av_Left = CURRENT_TURN_AV*np.abs(VITESSE-1)
+        Current_Turn_Av_Right = CURRENT_TURN_AV*np.abs(VITESSE-1)
+    elif ACTION == 1:
+        Current_Turn_Re_Left = CURRENT_TURN_RE*np.abs(VITESSE-1)
+        Current_Turn_Re_Right = CURRENT_TURN_RE*np.abs(VITESSE-1)
 
 # le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
 t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(1, ACTION)
@@ -194,8 +195,8 @@ runtime = 72 if ACTION == 2 else 500
 
 
 
-delais_av =3 *ms
-delais_re =16.5 *ms
+delais_av = 3 *ms
+delais_re = 16.5 *ms
 # OBSTACLE
 CURRENT_OBSTACLE = 9
 CURRENT_NO_OBSTACLE = 0
@@ -261,12 +262,12 @@ GRe = NeuronGroup(NB_PATTES, eqs, threshold='v>=seuilRe', reset='v=0', method='e
 GRe.tau = 500 * ms
 
 
-GVitesseAvance = NeuronGroup(3, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')# 2 neurones pour controler les 2 cotes des pattes séparément
-GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+GVitesseAvance = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')# 2 neurones pour controler les 2 cotes des pattes séparément
+GVitesseAvance.I = [Current_Turn_default, Current_Turn_default]
 GVitesseAvance.tau = 10 * ms
 
-GVitesseRecul = NeuronGroup(3, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')
-GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
+GVitesseRecul = NeuronGroup(2, eqs, threshold='v>=SeuilTourner', reset='v=0', method='euler')
+GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
 GVitesseRecul.tau = 50* ms
 
 GObstacleDevant = NeuronGroup(1, eqs, threshold='v>=seuilObstacle', reset='v=0', method='euler')
@@ -288,14 +289,15 @@ GObstacleGauche.tau = 0.1 * ms
 SControlAv = Synapses(GControl, GAv, 'w : 1', on_pre='v_post += w ')
 SControlAv.connect(i=0, j=range(len(GAv)))  
 SControlAv.w = '0.14'#6ms
-SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms 
+SControlAv.delay = delay_maker(NB_PATTES,0,3/VITESSE)* ms 
 
 
 # Synapses GControl -> GRe
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
-SControlRe.connect(i=0, j=range(len(GRe)))  
+SControlRe.connect(i=0, j=range(len(GRe)))
 SControlRe.w = '0.036'#33ms
-SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms # [0, 16.5,0,16.5, 0, 16.5] * ms
+SControlRe.delay = delay_maker(NB_PATTES,0, 16.5/VITESSE) * ms 
+#SControlRe.delay = [0, 16.5,0,16.5, 0, 16.5] * ms
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
@@ -307,13 +309,13 @@ SInhib.connect(condition='i==j')
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseAvance_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)# car on veut delai entre spike de 3 sur neurone 3
-SVitesseAvance_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 3, 0)*ms# [3,0,3]*ms  neurone 1 a t=6 GOOD
+SVitesseAvance_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 3/VITESSE, 0)*ms# [3,0,3]*ms  neurone 1 a t=6 GOOD
 
 # DONE
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)#[0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3 sur neurone 2
-SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3)*ms#[0,3,0]*ms# GOOD
+SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3/VITESSE)*ms#[0,3,0]*ms# GOOD
 
 # EN ATTENTE
 
@@ -331,13 +333,13 @@ SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post 
 SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))#i=2?
 SVitesseRecul_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)##'0.018'car on veut delai entre spike de 16.5 sur neurone 3
 #SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
-SVitesseRecul_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 16.5, 0)*ms#[16.5,0,16.5]*ms# car on veut neurone 1 et 3 spike a t=33 GOOD
+SVitesseRecul_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 16.5/VITESSE, 0)*ms#[16.5,0,16.5]*ms# car on veut neurone 1 et 3 spike a t=33 GOOD
 
 #DONE
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)# '0.018' car on veut delai entre spike de 16.5 sur neurone 2
-SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33 GOOD
+SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5/VITESSE)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33 GOOD
 
 # EN ATTENTE
 
@@ -416,9 +418,7 @@ spike_monitor_Obst_devant = SpikeMonitor(GObstacleDevant)
 spike_monitor_Obst_droite = SpikeMonitor(GObstacleDroite)
 spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
-#prise de decision
-GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
-GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
+
 
 
 
@@ -472,15 +472,14 @@ if OBSTACLE[0]==4:
 elif OBSTACLE[0]==3:
     GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
     Run_time = t_start_obstacle_droite
-
-
 elif OBSTACLE[0]==1:
     Run_time = t_start_obstacle_devant
-    #SControlRe.delay = [0,16.5,16.5,0,0,16.5]* ms #delay_maker(NB_PATTES,0,0)* ms 
-if TOURNER_EN_ROND==1:
-    Run_time = t_end_av
-#TEMPS PENDANT OBSTACLE
 
+
+#TEMPS PENDANT OBSTACLE
+#prise de decision
+GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
+GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right]
 print(f'1111111111111111111 RUN time {Run_time}')
 run(Run_time)
 
@@ -514,18 +513,22 @@ if OBSTACLE[0] == 1:
 
 
 
+# GVitesseAvance.I = [Current_Turn_default, Current_Turn_default]
+# GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
 
+#             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
 print(f'GObstacleGauche.I {GObstacleGauche.I}')
 
 print(f'22222222222222222 RUN time {Run_time}')
 
 run(Run_time)
 
+#                 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 if TURN ==0 :
     Run_time = runtime/3 *ms
 
 if OBSTACLE[0] !=None:
-    Run_time = 48 *ms
+    Run_time = 24 *ms
 
 if TURN !=0 :
     Run_time = 0 *ms
@@ -700,9 +703,9 @@ if TURN !=0 or OBSTACLE[0]!= None:
 
 fig1, axes = plt.subplots(nbfig , 1, sharex=True)
 if OBSTACLE[1] != None:
-    fig1.suptitle(f'{Text} {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
+    fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
-    fig1.suptitle(f'{Text} {TextDirection}', fontsize=16)
+    fig1.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
 
 
 # ax = axes[0]
@@ -767,9 +770,9 @@ i=0
 fig2, axes = plt.subplots(nbfig, 1, sharex=True)
 
 if OBSTACLE[1] != None:
-    fig2.suptitle(f'{Text} {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
+    fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
-    fig2.suptitle(f'{Text} {TextDirection}', fontsize=16)
+    fig2.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
 
 
 
@@ -825,7 +828,7 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 #     ax.set_title(f'Neurone {i} Avancer')
 
 ########### OU
-if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None and TOURNER_EN_ROND==0:
+if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None:
 
     fig3, axes = plt.subplots(3, 1, sharex=True)  
     fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
@@ -869,7 +872,7 @@ if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None and TOURNER_EN_ROND==0:
     fig3.subplots_adjust(hspace=0.4)
 
 
-if (TURN !=0 and ACTION == 2) or OBSTACLE[0]!=None or TOURNER_EN_ROND==1:
+if (TURN !=0 and ACTION == 2) or OBSTACLE[0]!=None:
     fig3, axes = plt.subplots(4, 1, sharex=True)  
     fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
 
