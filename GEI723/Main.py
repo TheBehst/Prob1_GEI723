@@ -11,9 +11,9 @@ VITESSE = 1 #
 
 PRESCENCE_OBSTACLE = True
 
-position= 3# 1=avant , 3=droite, 4 = gauche
-temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69
-temps_action= 132 *ms #temps pour gerer l obstacle  clem:135
+position= 4 # 1=avant , 3=droite, 4 = gauche
+temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
+temps_action= 48 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
 
 
 
@@ -533,6 +533,10 @@ if TURN ==0 and OBSTACLE[0] ==None:
     Run_time = runtime/3 *ms
 elif OBSTACLE[0]==4:
     Run_time = t_end_obstacle_gauche
+    if ACTION==2:
+        GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+    elif ACTION == 1:
+        GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
 elif OBSTACLE[0]==3:
     Run_time = t_end_obstacle_droite - t_start_obstacle_droite
 elif OBSTACLE[0]==1:
@@ -543,6 +547,15 @@ if OBSTACLE[0] == 3:
         GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
     elif ACTION == 1:
         GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
+    
+    
+
+if OBSTACLE[0] == 1:
+    Run_time = t_end_obstacle_devant
+
+    SControlRe.delay = [0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
+    GObstacleDevant.I = CURRENT_OBSTACLE
+
 
 if OBSTACLE[0] == 1:
     SControlRe.delay = [0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
