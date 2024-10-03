@@ -14,9 +14,8 @@ PRESCENCE_OBSTACLE = True
 position= 3 # 1=avant , 3=droite, 4 = gauche
 temps_apparition= 66 *ms # : temps d apparition de l obstacle  clem:69
 temps_action= 198 *ms #temps pour gerer l obstacle  clem:135
-if ACTION==1:
-    temps_apparition= 66 *ms # : temps d apparition de l obstacle  clem:69
-    temps_action= 198 *ms
+
+
 
 # REGLES TEMPS D APPARITION et TEMPS ACTION
 # obstacle devant : multiple de 6 , NB il y aura tj un pb sur le 1er spike du neurone 1 reculer, voir Note 3
@@ -521,6 +520,12 @@ elif OBSTACLE[0]==1:
 
 #TEMPS PENDANT OBSTACLE
 run(Run_time)
+if OBSTACLE[0]==4:
+    Run_time = t_end_obstacle_gauche
+elif OBSTACLE[0]==3:
+    Run_time = t_end_obstacle_droite
+elif OBSTACLE[0]==1:
+    Run_time = t_end_obstacle_devant
 if ACTION==2:
     GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
 elif ACTION == 1:
@@ -532,7 +537,7 @@ GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
 
 #             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
 
-run(t_end_obstacle_droite)
+run(Run_time)
 
 #                 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
