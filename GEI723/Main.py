@@ -358,7 +358,7 @@ SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0,
 #SI il y a un obstacle devant : GControl passe de  "avance " à "recule"  
 SObstacleDevantControl = Synapses(GObstacleDevant, GControl, 'w : 1', on_pre='v_post -= w')
 SObstacleDevantControl.connect(i=0, j=0)  
-SObstacleDevantControl.w = '0.24'# plus grand 0.235 = 2   on veut 2.2 ms
+SObstacleDevantControl.w = '0.24'# plus grand 0.235 = 2   on veut 2.2 ms``
 
 # # SI il y a un obstacle devant : on stop les actions de tourner 
 # # SObstacleDevant_GVitesseAvance = Synapses(GObstacleDevant, GVitesseAvance, 'w : 1', on_pre='v_post = w')
@@ -368,7 +368,7 @@ SObstacleDevantControl.w = '0.24'# plus grand 0.235 = 2   on veut 2.2 ms
 # # # DERRIERE
 SObstaclederriere_GVitesseAvance = Synapses(GObstacleDerriere, GAv, 'w : 1', on_pre='v_post += w')
 SObstaclederriere_GVitesseAvance.connect(i=0, j=range(len(GAv)))  
-SObstaclederriere_GVitesseAvance.w = '1' 
+SObstaclederriere_GVitesseAvance.w = '0.01' 
 
 # # A DROITE
 
