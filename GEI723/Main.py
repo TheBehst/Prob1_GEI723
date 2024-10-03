@@ -7,8 +7,8 @@ import math
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
-VITESSE = 1 #3
-TOURNER_EN_ROND = 1#1=true, # on tourne en rond vers gauche en avancant
+VITESSE = 3 #3
+TOURNER_EN_ROND = 0#1=true, # on tourne en rond vers gauche en avancant
 
 PRESCENCE_OBSTACLE = False
 
@@ -428,41 +428,6 @@ spike_monitor_Obst_gauche = SpikeMonitor(GObstacleGauche)
 
 
 
-
-#TODO BEHROUZ
-# run(100*ms)
-
-# spike_times_neuron_0_re = spike_monitor_re.spike_trains()[0]
-# spike_times_neuron_1_re = spike_monitor_re.spike_trains()[1]
-# delays_between_spikes_0_re = np.mean(diff(spike_times_neuron_0_re))
-# delays_between_spikes_1_re = np.mean(diff(spike_times_neuron_1_re))
-
-# spike_times_neuron_0_av = spike_monitor_av.spike_trains()[0]
-# spike_times_neuron_1_av = spike_monitor_av.spike_trains()[1]
-# delays_between_spikes_0_av = np.mean(diff(spike_times_neuron_0_av))
-# delays_between_spikes_1_av = np.mean(diff(spike_times_neuron_1_av))
-    
-# delays_av2, delays_re2 = delay_maker2(delays_between_spikes_0_av/2, delays_between_spikes_1_av/2, delays_between_spikes_0_re/2, delays_between_spikes_1_re/2, NB_PATTES)
-# delays_av_g, delays_av_d, delays_re_g, delays_re_d = delay_maker1(delays_between_spikes_0_av/2, delays_between_spikes_1_av/2, delays_between_spikes_0_re/2, delays_between_spikes_1_re/2, NB_PATTES//2)
-# # delays_av_g = generate_alternative_list_moitie(NB_PATTES, delays_between_spikes_0_av/2,0)
-# SControlAv.delay = np.array(delays_av2)*ms
-# SControlRe.delay = np.array(delays_re2)*ms
-# SVitesseAvance_cote_droit.delay = np.array(delays_av_d)*ms
-# SVitesseAvance_cote_gauche.delay = np.array(delays_av_g)*ms
-# SVitesseRecul_cote_droit.delay = np.array(delays_re_d)*ms
-# SVitesseRecul_cote_gauche.delay = np.array(delays_re_g)*ms
-
-
-# MAv = StateMonitor(GAv, 'v', record=True)
-# MRe = StateMonitor(GRe, 'v', record=True)
-# MVitesseAvance = StateMonitor(GVitesseAvance, 'v', record=True)
-# MVitesseRecul = StateMonitor(GVitesseRecul, 'v', record=True)
-# MObstacleDevant = StateMonitor(GObstacleDevant, 'v', record=True)
-# MObstacleDroite = StateMonitor(GObstacleDroite, 'v', record=True)
-# MObstacleGauche = StateMonitor(GObstacleGauche, 'v', record=True)
-
-
-
 Run_time = runtime *ms
 if TURN ==0 and OBSTACLE[0] ==None:
     Run_time = runtime/3 *ms
@@ -484,54 +449,54 @@ elif OBSTACLE[0]==1:
 
 if TOURNER_EN_ROND==1:
     Run_time = t_end_av
+
 #TEMPS PENDANT OBSTACLE
-#prise de decision
+#ajustement de vitesse
+
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
 GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right]
+
 print(f'1111111111111111111 RUN time {Run_time}')
 run(Run_time)
 
-GVitesseAvance.I = [Current_Turn_default, Current_Turn_default] #, Current_vitesse
-GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]#, Current_vitesse
-if TURN ==0 and OBSTACLE[0] ==None:
-    Run_time = runtime/3 *ms
-elif OBSTACLE[0]==4:
-    Run_time = t_end_obstacle_gauche - t_start_obstacle_gauche
-    if ACTION==2:
-        GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
-    elif ACTION == 1:
-        GObstacleGauche.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
-elif OBSTACLE[0]==3:
-    Run_time = t_end_obstacle_droite - t_start_obstacle_droite
-elif OBSTACLE[0]==1:
-    Run_time = t_end_obstacle_devant - t_start_obstacle_devant
 
-if OBSTACLE[0] == 3:
-    if ACTION==2:
-        GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
-    elif ACTION == 1:
-        GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
+if VITESSE ==1:
+    GVitesseAvance.I = [Current_Turn_default, Current_Turn_default] 
+    GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
+    if TURN ==0 and OBSTACLE[0] ==None:
+        Run_time = runtime/3 *ms
+    elif OBSTACLE[0]==4:
+        Run_time = t_end_obstacle_gauche - t_start_obstacle_gauche
+        if ACTION==2:
+            GObstacleGauche.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+        elif ACTION == 1:
+            GObstacleGauche.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
+    elif OBSTACLE[0]==3:
+        Run_time = t_end_obstacle_droite - t_start_obstacle_droite
+    elif OBSTACLE[0]==1:
+        Run_time = t_end_obstacle_devant - t_start_obstacle_devant
+
+    if OBSTACLE[0] == 3:
+        if ACTION==2:
+            GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+        elif ACTION == 1:
+            GObstacleDroite.I = [CURRENT_NO_OBSTACLE , CURRENT_OBSTACLE]
     
-    
-if OBSTACLE[0] == 1:
-    Run_time = t_end_obstacle_devant
+    if OBSTACLE[0] == 1:
+        Run_time = t_end_obstacle_devant
 
-    SControlRe.delay = delay_maker(NB_PATTES,33,0)* ms #[0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
-    GObstacleDevant.I = CURRENT_OBSTACLE
-
+        SControlRe.delay = delay_maker(NB_PATTES,33,0)* ms #[0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
+        GObstacleDevant.I = CURRENT_OBSTACLE
 
 
-# GVitesseAvance.I = [Current_Turn_default, Current_Turn_default]
-# GVitesseRecul.I = [Current_Turn_default, Current_Turn_default]
 
-#             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
+
 print(f'GObstacleGauche.I {GObstacleGauche.I}')
 
 print(f'22222222222222222 RUN time {Run_time}')
 
 run(Run_time)
 
-#                 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 if TURN ==0 :
     Run_time = runtime/3 *ms
 
@@ -547,7 +512,6 @@ if OBSTACLE[0] == 1:
     GObstacleDevant.I = CURRENT_NO_OBSTACLE
 
 if OBSTACLE[0]==4:
-    
     GObstacleGauche.I = [CURRENT_NO_OBSTACLE , CURRENT_NO_OBSTACLE]
 
 print(f'333333333 RUN time {Run_time}')
