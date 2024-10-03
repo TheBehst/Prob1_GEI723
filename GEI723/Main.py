@@ -2,19 +2,24 @@ from brian2 import *
 import matplotlib.pyplot as plt
 import math
 
-############################### 4 CHOIX UTILISATEURS ################################################
+############################### CHOIX UTILISATEURS ################################################
 
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
+TOURNER_EN_ROND = 0#1=true, # on tourne en rond en avancant
 VITESSE = 1 #
 
-PRESCENCE_OBSTACLE = False
+PRESCENCE_OBSTACLE =False
 
-position= 1 # 1=avant , 3=droite, 4 = gauche
+position= 3 # 1=avant , 3=droite, 4 = gauche
 temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
 temps_action= 144 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
 
+
+OBSTACLE = [None, None, None]
+if PRESCENCE_OBSTACLE:
+    OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]#position doit etre coherent avec action
 
 
 # REGLES TEMPS D APPARITION et TEMPS ACTION
@@ -26,12 +31,6 @@ temps_action= 144 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
 # obstacle heurte a gauche en avancant: multiple de 6 
 # obstacle heurte a gauche en reculant: multiple de 33 
 
-
-
-
-OBSTACLE = [None, None, None]
-if PRESCENCE_OBSTACLE:
-    OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]#position doit etre coherent avec action
 
 # Notes : 
 
@@ -56,7 +55,7 @@ if ACTION not in [1, 2]:
     ACTION = 1
 
 Text = "Avancer" if ACTION == 2 else "Reculer"
-TextDirection = "à gauche" if TURN == 1 else "à droite" if TURN == 2 else "sans tourner"
+TextDirection = "en allant à gauche" if TURN == 1 else "en allant à droite" if TURN == 2 else "en tournant en rond" if TOURNER_EN_ROND== 1 else "sans tourner"
 TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
 
 #################################### DEF ##########################################
@@ -110,6 +109,7 @@ def definir_temps(TURN, ACTION):
     t_end_base_av = 36* ms 
     t_start_base_re = 0* ms 
     t_end_base_re = 198* ms 
+
     
     dephase = 3 * ms if TURN == 1 and ACTION == 2 else 0
     dephase_re = 16.5 * ms if TURN == 1 and ACTION == 1 else 0
@@ -135,12 +135,17 @@ def definir_temps(TURN, ACTION):
         t_end_re = t_end_base_re 
         t_start_av = 0* ms 
         t_end_av = 0* ms 
+
+         
     else:
         t_start_re = 0* ms 
         t_end_re = 0* ms 
         t_start_av = 0* ms 
         t_end_av = 0* ms 
 
+    if TOURNER_EN_ROND ==1:
+        t_end_av = t_end_base_av *4
+    
     return t_start_av, t_end_av, t_start_re, t_end_re
 
 
@@ -175,6 +180,8 @@ Current_Turn_Av_Left = CURRENT_TURN_AV if TURN ==  1 and ACTION == 2 else Curren
 Current_Turn_Av_Right = CURRENT_TURN_AV if TURN ==  2  and ACTION == 2 else Current_Turn_default
 Current_Turn_Re_Left = CURRENT_TURN_RE if TURN ==  1 and ACTION == 1 else Current_Turn_default
 Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Current_Turn_default
+
+Current_Turn_Av_Left = CURRENT_TURN_AV if ACTION == 2 and TOURNER_EN_ROND == 1 else Current_Turn_default
 
 # le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
 t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(1, ACTION)
@@ -288,8 +295,7 @@ SControlAv.delay = delay_maker(NB_PATTES,0,3)* ms
 SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 SControlRe.connect(i=0, j=range(len(GRe)))  
 SControlRe.w = '0.036'#33ms
-SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms 
-#SControlRe.delay = [0, 16.5,0,16.5, 0, 16.5] * ms
+SControlRe.delay = delay_maker(NB_PATTES,0, 16.5) * ms # [0, 16.5,0,16.5, 0, 16.5] * ms
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
@@ -466,11 +472,13 @@ if OBSTACLE[0]==4:
 elif OBSTACLE[0]==3:
     GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
     Run_time = t_start_obstacle_droite
+
+
 elif OBSTACLE[0]==1:
     Run_time = t_start_obstacle_devant
     #SControlRe.delay = [0,16.5,16.5,0,0,16.5]* ms #delay_maker(NB_PATTES,0,0)* ms 
-
-
+if TOURNER_EN_ROND==1:
+    Run_time = t_end_av
 #TEMPS PENDANT OBSTACLE
 
 print(f'1111111111111111111 RUN time {Run_time}')
@@ -507,14 +515,12 @@ if OBSTACLE[0] == 1:
 
 
 
-#             GObstacleDroite.I = [CURRENT_OBSTACLE , CURRENT_NO_OBSTACLE]
 print(f'GObstacleGauche.I {GObstacleGauche.I}')
 
 print(f'22222222222222222 RUN time {Run_time}')
 
 run(Run_time)
 
-#                 GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 if TURN ==0 :
     Run_time = runtime/3 *ms
 
@@ -694,9 +700,9 @@ if TURN !=0 or OBSTACLE[0]!= None:
 
 fig1, axes = plt.subplots(nbfig , 1, sharex=True)
 if OBSTACLE[1] != None:
-    fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
+    fig1.suptitle(f'{Text} {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
-    fig1.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+    fig1.suptitle(f'{Text} {TextDirection}', fontsize=16)
 
 
 # ax = axes[0]
@@ -761,9 +767,9 @@ i=0
 fig2, axes = plt.subplots(nbfig, 1, sharex=True)
 
 if OBSTACLE[1] != None:
-    fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
+    fig2.suptitle(f'{Text} {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
-    fig2.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+    fig2.suptitle(f'{Text} {TextDirection}', fontsize=16)
 
 
 
@@ -819,7 +825,7 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 #     ax.set_title(f'Neurone {i} Avancer')
 
 ########### OU
-if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None:
+if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None and TOURNER_EN_ROND==0:
 
     fig3, axes = plt.subplots(3, 1, sharex=True)  
     fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
@@ -863,7 +869,7 @@ if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None:
     fig3.subplots_adjust(hspace=0.4)
 
 
-if (TURN !=0 and ACTION == 2) or OBSTACLE[0]!=None:
+if (TURN !=0 and ACTION == 2) or OBSTACLE[0]!=None or TOURNER_EN_ROND==1:
     fig3, axes = plt.subplots(4, 1, sharex=True)  
     fig3.suptitle('Groupe de Neurones Avancer', fontsize=16)
 
