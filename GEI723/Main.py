@@ -7,32 +7,23 @@ import math
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
-VITESSE =1 # 1 OU 2 POUR LE MOMENT
+VITESSE =1 # 1 (normal) OU 2 
 TOURNER_EN_ROND = 0#1=true, # on tourne en rond vers gauche en avancant
 
 PRESCENCE_OBSTACLE = True
 
-position= 1 # 1=avant ,2 = derriere,  3=droite, 4 = gauche
-temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
-temps_action= 144 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
-#ratio_vitesse = 6/
+position= 2 # 1=avant ,2 = derriere,  3=droite, 4 = gauche
+temps_apparition= 24 *ms # : temps d apparition de l obstacle , multiple de 6ms
+temps_action= 144 *ms #temps pour gerer l obstacle  , multiple de 6ms
 
 
-# REGLES TEMPS D APPARITION et TEMPS ACTION
-# obstacle devant : multiple de 6 
-
-# obstacle heurte a droite en avancant: multiple de 6 + 3,  et temps d action k*3
-# obstacle heurte a droite en reculant: multiple de 33 + 16.5, et temps d action + k*33 ex : 82.5 et 148.5
-
-# obstacle heurte a gauche en avancant: multiple de 6 
-# obstacle heurte a gauche en reculant: multiple de 33 
 
 
 
 
 OBSTACLE = [None, None, None]
 if PRESCENCE_OBSTACLE:
-    OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]#position doit etre coherent avec action
+    OBSTACLE = [position, temps_apparition, temps_apparition+temps_action]
 
 # Notes : 
 
@@ -189,7 +180,7 @@ if VITESSE !=1:
         Current_Turn_Re_Left = CURRENT_TURN_RE*np.abs(VITESSE-1)
         Current_Turn_Re_Right = CURRENT_TURN_RE*np.abs(VITESSE-1)
 
-# le temps pour lequel le neurone qui indique "tourne!" doit changer en fonction du cote comme il y a un dephasage
+# le temps pour lequel le neurone qui indique "tourne" doit changer en fonction du coté comme il y a un dephasage
 t_start_av, t_end_av, t_start_re, t_end_re = definir_temps(TURN, ACTION)
 print("t_start_av:", t_start_av)
 print("t_end_av:", t_end_av)
@@ -316,7 +307,6 @@ SControlRe = Synapses(GControl, GRe, 'w : 1', on_pre='v_post += w')
 SControlRe.connect(i=0, j=range(len(GRe)))
 SControlRe.w = '0.036'#33ms
 SControlRe.delay = delay_maker(NB_PATTES,0, 16.5/VITESSE) * ms 
-#SControlRe.delay = [0, 16.5,0,16.5, 0, 16.5] * ms
 
 # Synapses GAv -> GRe pour inhiber
 SInhib = Synapses(GAv, GRe, on_pre='v_post = 0')
@@ -328,13 +318,13 @@ SInhib.connect(condition='i==j')
 SVitesseAvance_cote_droit = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))
 SVitesseAvance_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)# car on veut delai entre spike de 3 sur neurone 3
-SVitesseAvance_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 3/VITESSE, 0)*ms# [3,0,3]*ms  neurone 1 a t=6 GOOD
+SVitesseAvance_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 3/VITESSE, 0)*ms#   neurone 1 a t=6 
 
 # DONE
 SVitesseAvance_cote_gauche = Synapses(GVitesseAvance, GAv, 'w : 1', on_pre='v_post += w')
 SVitesseAvance_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
-SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)#[0.05, 0.06, 0.05]#'0.06'#  car on veut delai entre spike de 3 sur neurone 2
-SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3/VITESSE)*ms#[0,3,0]*ms# GOOD
+SVitesseAvance_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.05, 0.06)# car on veut delai entre spike de 3 sur neurone 2
+SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 3/VITESSE)*ms#
 
 
 
@@ -343,14 +333,13 @@ SVitesseAvance_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0
 SVitesseRecul_cote_droit = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_droit.connect(i=0, j = odd_numbers(NB_PATTES))#i=2?
 SVitesseRecul_cote_droit.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)##'0.018'car on veut delai entre spike de 16.5 sur neurone 3
-#SVitesseRecul_cote_droit.delay = delay_maker(NB_PATTES,0, 8.25)[:NB_PATTES // 2] * ms#[16.5, 8.25, 16.5]  * ms
-SVitesseRecul_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 16.5/VITESSE, 0)*ms#[16.5,0,16.5]*ms# car on veut neurone 1 et 3 spike a t=33 GOOD
+SVitesseRecul_cote_droit.delay = generate_alternative_list_moitie(NB_PATTES, 16.5/VITESSE, 0)*ms# car on veut neurone 1 et 3 spike a t=33 
 
 #DONE
 SVitesseRecul_cote_gauche = Synapses(GVitesseRecul, GRe, 'w : 1', on_pre='v_post += w')
 SVitesseRecul_cote_gauche.connect(i=1, j = even_numbers(NB_PATTES))
 SVitesseRecul_cote_gauche.w = generate_alternative_list_moitie(NB_PATTES, 0.018, 0.018)# '0.018' car on veut delai entre spike de 16.5 sur neurone 2
-SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5/VITESSE)*ms#[0,16.5,0]*ms# car on veut neurone 2 spike a t=33 GOOD
+SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0, 16.5/VITESSE)*ms# car on veut neurone 2 spike a t=33 
 
 # OBSTACLES
 
@@ -358,12 +347,8 @@ SVitesseRecul_cote_gauche.delay = generate_alternative_list_moitie(NB_PATTES, 0,
 #SI il y a un obstacle devant : GControl passe de  "avance " à "recule"  
 SObstacleDevantControl = Synapses(GObstacleDevant, GControl, 'w : 1', on_pre='v_post -= w')
 SObstacleDevantControl.connect(i=0, j=0)  
-SObstacleDevantControl.w = '0.24'# plus grand 0.235 = 2   on veut 2.2 ms``
+SObstacleDevantControl.w = '0.24'#  on veut 2.2 ms``
 
-# # SI il y a un obstacle devant : on stop les actions de tourner 
-# # SObstacleDevant_GVitesseAvance = Synapses(GObstacleDevant, GVitesseAvance, 'w : 1', on_pre='v_post = w')
-# # SObstacleDevant_GVitesseAvance.connect(i=0, j=range(len(GVitesseAvance)))  
-# # SObstacleDevant_GVitesseAvance.w = '0'
 
 # # # DERRIERE
 SObstaclederriere_GVitesseAvance = Synapses(GObstacleDerriere, GAv, 'w : 1', on_pre='v_post += w')
@@ -390,17 +375,6 @@ SObstaclegauche_GVitesseRecule= Synapses(GObstacleGauche, GVitesseRecul, 'w : 1'
 SObstaclegauche_GVitesseRecule.connect(i=1, j=1)  
 SObstaclegauche_GVitesseRecule.w = '0.011' 
 
-
-
-########################### NETWORK OPERATIONS ###########################
-
-# @network_operation(dt=0.5*ms)
-# def update_obstacle_droite():
-#     if ACTION == 1:
-#         if GObstacleDroite.t >= t_start_obstacle_droite and GObstacleDroite.t < t_end_obstacle_droite:
-#             GObstacleDroite.I = [CURRENT_NO_OBSTACLE,CURRENT_OBSTACLE ]
-#         if GObstacleDroite.t >= t_end_obstacle_droite:
-#             GObstacleDroite.I = [CURRENT_NO_OBSTACLE ,CURRENT_NO_OBSTACLE]
 
 ########################### MONITOR ####################################
 
@@ -455,7 +429,6 @@ if TOURNER_EN_ROND==1:
 GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right]
 GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right]
 
-print(f'1111111111111111111 RUN time {Run_time}')
 run(Run_time)
 
 
@@ -474,7 +447,7 @@ if VITESSE ==1:
         Run_time = t_end_obstacle_droite - t_start_obstacle_droite
     elif OBSTACLE[0]==1: #obstacle devant
         Run_time = t_end_obstacle_devant - t_start_obstacle_devant
-        SControlRe.delay = delay_maker(NB_PATTES,33,0)* ms #[0,33,33,0,0,33]* ms #delay_maker(NB_PATTES,0,0)* ms 
+        SControlRe.delay = delay_maker(NB_PATTES,0,33)*ms#
         GObstacleDevant.I = CURRENT_OBSTACLE
     elif OBSTACLE[0]==2: #obstacle derriere
         Run_time = t_end_obstacle_derriere - t_start_obstacle_derriere
@@ -491,9 +464,7 @@ if VITESSE ==1:
 
 
 
-print(f'GObstacleGauche.I {GObstacleGauche.I}')
 
-print(f'22222222222222222 RUN time {Run_time}')
 
 run(Run_time)
 
@@ -515,29 +486,10 @@ if OBSTACLE[0] == 2:
 if OBSTACLE[0]==4:
     GObstacleGauche.I = [CURRENT_NO_OBSTACLE , CURRENT_NO_OBSTACLE]
 
-print(f'333333333 RUN time {Run_time}')
 
 run(Run_time)
 
-# @network_operation(dt=0.1*ms) 
-# def update_current():
-#     if GVitesseAvance.t < t_end_av- 0.5*ms and GVitesseAvance.t >= t_start_av:
-#         GVitesseAvance.I = [Current_Turn_Av_Left, Current_Turn_Av_Right, Current_vitesse]
-       
-#     if GVitesseAvance.t > t_end_av - 0.5*ms:
-#         GVitesseAvance.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-    
-#     if GVitesseRecul.t < t_end_re- 0.5*ms and GVitesseRecul.t >= t_start_re:
-#         GVitesseRecul.I = [Current_Turn_Re_Left, Current_Turn_Re_Right, Current_vitesse]
-
- 
-#     if GVitesseRecul.t == t_end_re -0.5*ms:
-#         GRe.v = [0,0,0,0,0,0]
-
-#     if GVitesseRecul.t > t_end_re -0.5*ms:
-#         GVitesseRecul.I = [Current_Turn_default, Current_Turn_default, Current_vitesse]
-
-        
+#
 
 ############################## AFTER RUN ################################################
 # Control direction
@@ -676,34 +628,12 @@ if TURN !=0 or OBSTACLE[0]!= None:
 
 fig1, axes = plt.subplots(nbfig , 1, sharex=True)
 if OBSTACLE[1] != None:
-    fig1.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
+    fig1.suptitle(f'{Text} {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
-    fig1.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+    fig1.suptitle(f'{Text} {TextDirection}', fontsize=16)
 
 
-# ax = axes[0]
-# ax.plot(MControl.t/ms, MControl.v[0], color='blue')
-# ax.axhline(y=seuilControle, ls='--', color='g')
-# ax.set_ylabel('Potentiel')
-# ax.set_title(f'Neurone de controle de direction  avec courant pour {Text} ')
 
-# ax = axes[0]
-# ax.plot(MObstacleDevant.t/ms, MObstacleDevant.v[0], color='blue')
-# ax.axhline(y=seuilObstacle, ls='--', color='g')
-# ax.set_ylabel('Potentiel')
-# ax.set_title(f'Neurone de obstacle devant')
-
-# ax = axes[0]
-# ax.plot(MObstacleDroite.t/ms, MObstacleDroite.v[0], color='blue')
-# ax.axhline(y=seuilObstacle, ls='--', color='g')
-# ax.set_ylabel('Potentiel')
-# ax.set_title(f'Neurone de obstacle droite  ( de {OBSTACLE[1]} a {OBSTACLE[2]} ) ')
-
-# ax = axes[0]
-# ax.plot(MObstacleGauche.t/ms, MObstacleGauche.v[0], color='blue')
-# ax.axhline(y=seuilObstacle, ls='--', color='g')
-# ax.set_ylabel('Potentiel')
-# ax.set_title(f'Neurone de obstacle Gauche ')
 
 ax = axes[i]
 ax.plot(MAv.t/ms, MAv.v[0], color='orange')
@@ -743,18 +673,12 @@ i=0
 fig2, axes = plt.subplots(nbfig, 1, sharex=True)
 
 if OBSTACLE[1] != None:
-    fig2.suptitle(f'{Text} en allant {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
+    fig2.suptitle(f'{Text} {TextDirection}, obstacle ({TexteObstacle} de {OBSTACLE[1]} à {OBSTACLE[2]})', fontsize=16)
 else:
-    fig2.suptitle(f'{Text} en allant {TextDirection}', fontsize=16)
+    fig2.suptitle(f'{Text} {TextDirection}', fontsize=16)
 
 
 
-
-# ax = axes[0]
-# ax.plot(MControl.t/ms, MControl.v[0], color='blue')
-# ax.axhline(y=seuilControle, ls='--', color='g')
-# ax.set_ylabel('Potentiel')
-# ax.set_title(f'Neurone controle de direction avec courant pour {Text} ')
 
 ax = axes[i]
 ax.plot(MAv.t/ms, MAv.v[1], color='orange')
@@ -792,15 +716,6 @@ fig2.subplots_adjust(hspace=0.7)  # Ajuste l'espacement vertical entre les sous-
 
 
 
-# fig3, axes = plt.subplots(NB_PATTES, 1, sharex=True)
-# for i in range(NB_PATTES):
-#     ax = axes[i]
-#     ax.plot(MAv.t/ms, MAv.v[i], color='orange')
-#     ax.axhline(y=seuilAv, ls='--', color='g')
-#     ax.set_ylabel('Potentiel')
-#     ax.set_title(f'Neurone {i} Avancer')
-
-########### OU
 if TURN ==0 and ACTION == 2 and OBSTACLE[0]==None and TOURNER_EN_ROND==0:
 
     fig3, axes = plt.subplots(3, 1, sharex=True)  
@@ -899,21 +814,6 @@ if (TURN !=0 and ACTION == 2) or OBSTACLE[0]!=None or TOURNER_EN_ROND==1:
     fig3.subplots_adjust(hspace=0.4)
 
 
-#### VERIFIER LE BON DEPHASE DES PATTES POUR LE GROUPE RECULER  ####            NE PAS SUPPRIMER
-
-# fig4, axes = plt.subplots(NB_PATTES, 1, sharex=True)
-# for i in range(NB_PATTES):
-#     ax = axes[i]
-#     ax.plot(MRe.t/ms, MRe.v[i], color='red')
-#     ax.axhline(y=seuilRe, ls='--', color='g')
-#     ax.set_ylabel('Potentiel')
-#     ax.set_title(f'Neurone {i} Reculer')
-
-# fig4.tight_layout()
-
-######################### OU
-
-# DANS LE CAS AVANCE OU RECULE SANS TOURNER
 
 if TURN ==0 and ACTION == 1:
 
