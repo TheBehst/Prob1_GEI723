@@ -7,7 +7,7 @@ import math
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
-VITESSE =2 # 1 OU 2 POUR LE MOMENT
+VITESSE =1 # 1 OU 2 POUR LE MOMENT
 TOURNER_EN_ROND = 0#1=true, # on tourne en rond vers gauche en avancant
 
 PRESCENCE_OBSTACLE = True
@@ -60,7 +60,7 @@ Text = "Avancer" if ACTION == 2 else "Reculer"
 
 TextDirection = "en allant à gauche" if TURN == 1 else "en allant à droite" if TURN == 2 else "en tournant en rond" if TOURNER_EN_ROND== 1 else "sans tourner"
 
-TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "Aucun"
+TexteObstacle = "à droite" if OBSTACLE [0]==3 else "devant" if OBSTACLE [0]==1  else "à gauche" if OBSTACLE [0]==4 else "derrière" if OBSTACLE [0]==2 else "Aucun"
 
 #################################### DEF ##########################################
 
