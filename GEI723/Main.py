@@ -7,12 +7,12 @@ import math
 TURN = 0# 0 = STRAIGHT, 1 = LEFT, 2 = RIGHT    | NB: L'action de tourner commence des le debut
 ACTION =2 #2 = AVANCER, 1 = RECULER
 NB_PATTES = 6# doit etre pair et sup a 6
-VITESSE =1 # 1 OU 2 POUR LE MOMENT
+VITESSE =2 # 1 OU 2 POUR LE MOMENT
 TOURNER_EN_ROND = 0#1=true, # on tourne en rond vers gauche en avancant
 
 PRESCENCE_OBSTACLE = True
 
-position= 2 # 1=avant ,2 = derriere,  3=droite, 4 = gauche
+position= 1 # 1=avant ,2 = derriere,  3=droite, 4 = gauche
 temps_apparition= 24 *ms # : temps d apparition de l obstacle  clem:69 behrouz:66
 temps_action= 144 *ms #temps pour gerer l obstacle  clem:135 behrouz:198
 #ratio_vitesse = 6/
@@ -179,7 +179,7 @@ Current_Turn_Av_Left = CURRENT_TURN_AV if TURN ==  1 and ACTION == 2 else Curren
 Current_Turn_Av_Right = CURRENT_TURN_AV if TURN ==  2  and ACTION == 2 else Current_Turn_default
 Current_Turn_Re_Left = CURRENT_TURN_RE if TURN ==  1 and ACTION == 1 else Current_Turn_default
 Current_Turn_Re_Right = CURRENT_TURN_RE if TURN ==  2  and ACTION == 1 else Current_Turn_default
-Current_Turn_Av_Left = CURRENT_TURN_AV if ACTION == 2 and TOURNER_EN_ROND == 1 else Current_Turn_default
+Current_Turn_Av_Left = CURRENT_TURN_AV if ACTION == 2 and TOURNER_EN_ROND == 1 else Current_Turn_Av_Left
 
 if VITESSE !=1:
     if ACTION ==2: 
